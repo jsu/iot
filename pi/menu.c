@@ -6,12 +6,12 @@
 
 struct Node
 {
-	char *name;
-	uint16_t id;
+    char *name;
+    uint16_t id;
     struct Node *parent;
     struct Node *child;
-	struct Node *prev;
-	struct Node *next;
+    struct Node *prev;
+    struct Node *next;
 };
 
 struct Node *_head, *_curr_node;
@@ -40,16 +40,16 @@ struct Node *insert_next(struct Node *p, char *w, uint16_t id, struct Node *pare
     node->child = NULL;
     node->next = node->prev = NULL;
 
-	if(p == NULL) 
+    if(p == NULL) 
         return node;
-	else
+    else
     {
         ptr = p;
         while(ptr->next)
             ptr = ptr->next;
         ptr->next = node;
         node->prev = ptr;
-	    return p;
+        return p;
     }
 }
 
@@ -221,20 +221,20 @@ void reset_current_menu_node()
 }
 
 /*
-int main(int argc, char **argv)
-{
-    init_menu();
-    printf("Start from %d\n", _head->id);
-    printf("U %d\n", menu_u()->id);
-    printf("D %d\n", menu_d());
-    printf("U %d\n", menu_u());
-    printf("E %d\n", menu_e());
-    printf("D %d\n", menu_d());
-    printf("D %d\n", menu_d());
-    printf("D %d\n", menu_d());
-    printf("D %d\n", menu_d());
-    printf("B %d\n", menu_b());
+   int main(int argc, char **argv)
+   {
+   init_menu();
+   printf("Start from %d\n", _head->id);
+   printf("U %d\n", menu_u()->id);
+   printf("D %d\n", menu_d());
+   printf("U %d\n", menu_u());
+   printf("E %d\n", menu_e());
+   printf("D %d\n", menu_d());
+   printf("D %d\n", menu_d());
+   printf("D %d\n", menu_d());
+   printf("D %d\n", menu_d());
+   printf("B %d\n", menu_b());
 
-	return 0;
-}
-*/
+   return 0;
+   }
+   */
