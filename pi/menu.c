@@ -58,94 +58,92 @@ int init_menu()
     struct Node *parent, *ptr;
 
     ptr = parent = NULL;
-    ptr = insert_next(ptr, "1.Manual", 1, parent);
-    ptr = insert_next(ptr, "2.Air Purifier", 2, parent);
-    ptr = insert_next(ptr, "3.Comfort", 3, parent);
-    ptr = insert_next(ptr, "4.Remote", 4, parent);
+    ptr = insert_next(ptr, "Manual", 1, parent);
+    ptr = insert_next(ptr, "Comfort", 2, parent);
+    ptr = insert_next(ptr, "Purify", 3, parent);
+    ptr = insert_next(ptr, "Remote/Local", 4, parent);
     _curr_node = _head = ptr;
 
     parent = _head;
     ptr = NULL;
-    ptr = insert_next(ptr, "1-1", 11, parent);
-    ptr = insert_next(ptr, "1-2", 12, parent);
-    ptr = insert_next(ptr, "1-3", 13, parent);
-    ptr = insert_next(ptr, "1-4", 14, parent);
-    ptr = insert_next(ptr, "1-5", 15, parent);
-    ptr = insert_next(ptr, "1-6", 16, parent);
-    ptr = insert_next(ptr, "1-7", 17, parent);
-    ptr = insert_next(ptr, "1-8", 18, parent);
+    ptr = insert_next(ptr, "Fan", 11, parent);
+    ptr = insert_next(ptr, "ESP", 12, parent);
+    ptr = insert_next(ptr, "Ions", 13, parent);
+    ptr = insert_next(ptr, "UV", 14, parent);
+    ptr = insert_next(ptr, "Ozone", 15, parent);
     _head->child = ptr;
 
     parent = _head->child;
     ptr = NULL;
-    ptr = insert_next(ptr, "1-1-1", 111, parent);
-    ptr = insert_next(ptr, "1-1-2", 112, parent);
-    ptr = insert_next(ptr, "1-1-3", 113, parent);
-    ptr = insert_next(ptr, "1-1-4", 114, parent);
-    ptr = insert_next(ptr, "1-1-5", 115, parent);
-    ptr = insert_next(ptr, "1-1-6", 116, parent);
-    ptr = insert_next(ptr, "1-1-7", 117, parent);
+    ptr = insert_next(ptr, "Fan Stop", 111, parent);
+    ptr = insert_next(ptr, "Fan Duty 250", 112, parent);
+    ptr = insert_next(ptr, "Fan Duty 400", 113, parent);
+    ptr = insert_next(ptr, "Fan Duty 550", 114, parent);
+    ptr = insert_next(ptr, "Fan Duty 700", 115, parent);
+    ptr = insert_next(ptr, "Fan Duty 850", 116, parent);
     _head->child->child = ptr;
 
     parent = _head->child->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "1-2-1", 121, parent);
-    ptr = insert_next(ptr, "1-2-2", 122, parent);
-    ptr = insert_next(ptr, "1-2-3", 123, parent);
-    ptr = insert_next(ptr, "1-2-4", 124, parent);
+    ptr = insert_next(ptr, "ESP Start", 121, parent);
+    ptr = insert_next(ptr, "ESP Stop", 122, parent);
     _head->child->next->child = ptr;
 
     parent = _head->child->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "1-3-1", 131, parent);
-    ptr = insert_next(ptr, "1-3-2", 132, parent);
-    ptr = insert_next(ptr, "1-3-3", 133, parent);
-    ptr = insert_next(ptr, "1-3-4", 134, parent);
+    ptr = insert_next(ptr, "Ions Start", 131, parent);
+    ptr = insert_next(ptr, "Ions Stop", 132, parent);
     _head->child->next->next->child = ptr;
 
-    parent = _head->child->next->next->next->next->next->next;
+    parent = _head->child->next->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "1-7-1", 171, parent);
-    ptr = insert_next(ptr, "1-7-2", 172, parent);
-    ptr = insert_next(ptr, "1-7-3", 173, parent);
-    ptr = insert_next(ptr, "1-7-4", 174, parent);
-    ptr = insert_next(ptr, "1-7-5", 175, parent);
-    ptr = insert_next(ptr, "1-7-6", 176, parent);
-    ptr = insert_next(ptr, "1-7-7", 177, parent);
-    ptr = insert_next(ptr, "1-7-8", 178, parent);
-    _head->child->next->next->next->next->next->next->child = ptr;
+    ptr = insert_next(ptr, "UV Light Start", 141, parent);
+    ptr = insert_next(ptr, "UV Light Stop", 142, parent);
+    ptr = insert_next(ptr, "UV Set Time", 143, parent);
+    _head->child->next->next->next->child = ptr;
 
-    parent = _head->child->next->next->next->next->next->next->next;
+    parent = _head->child->next->next->next->child;
     ptr = NULL;
-    ptr = insert_next(ptr, "1-8-1", 181, parent);
-    ptr = insert_next(ptr, "1-8-2", 182, parent);
-    ptr = insert_next(ptr, "1-8-3", 183, parent);
-    ptr = insert_next(ptr, "1-8-4", 184, parent);
-    _head->child->next->next->next->next->next->next->next->child = ptr;
+    ptr = insert_next(ptr, "UV 10 Minutes", 1431, parent);
+    ptr = insert_next(ptr, "UV 15 Minutes", 1432, parent);
+    ptr = insert_next(ptr, "UV 30 Minutes", 1433, parent);
+    ptr = insert_next(ptr, "UV 60 Minutes", 1433, parent);
+    _head->child->next->next->next->child->child = ptr;
+
+    parent = _head->child->next->next->next->next;
+    ptr = NULL;
+    ptr = insert_next(ptr, "O3 Start", 151, parent);
+    ptr = insert_next(ptr, "O3 Stop", 152, parent);
+    ptr = insert_next(ptr, "O3 Set Time", 153, parent);
+    _head->child->next->next->next->next->child = ptr;
+
+    parent = _head->child->next->next->next->next->child;
+    ptr = NULL;
+    ptr = insert_next(ptr, "O3  5 Minutes", 1531, parent);
+    ptr = insert_next(ptr, "O3 10 Minutes", 1532, parent);
+    ptr = insert_next(ptr, "O3 15 Minutes", 1533, parent);
+    ptr = insert_next(ptr, "O3 30 Minutes", 1534, parent);
+    _head->child->next->next->next->next->child->child = ptr;
 
     parent = _head->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "2-1", 21, parent);
-    ptr = insert_next(ptr, "2-2", 22, parent);
-    ptr = insert_next(ptr, "2-3", 23, parent);
-    ptr = insert_next(ptr, "2-4", 24, parent);
+    ptr = insert_next(ptr, "Comfort Start", 21, parent);
+    ptr = insert_next(ptr, "Comfort Stop", 22, parent);
     _head->next->child = ptr;
-
-    parent = _head->next->child->next;
-    ptr = NULL;
-    ptr = insert_next(ptr, "2-2-1", 221, parent);
-    ptr = insert_next(ptr, "2-2-2", 222, parent);
-    ptr = insert_next(ptr, "2-2-3", 223, parent);
-    ptr = insert_next(ptr, "2-2-4", 224, parent);
-    _head->next->child->next->child = ptr;
 
     parent = _head->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "3-1", 31, parent);
-    ptr = insert_next(ptr, "3-2", 32, parent);
-    ptr = insert_next(ptr, "3-3", 33, parent);
-    ptr = insert_next(ptr, "3-4", 34, parent);
+    ptr = insert_next(ptr, "Purify Stop", 31, parent);
+    ptr = insert_next(ptr, "UV Mode", 32, parent);
+    ptr = insert_next(ptr, "O3 Mode", 33, parent);
+    ptr = insert_next(ptr, "UV/O3 Hybrid", 34, parent);
     _head->next->next->child = ptr;
+
+    parent = _head->next->next->next;
+    ptr = NULL;
+    ptr = insert_next(ptr, "Remote", 41, parent);
+    ptr = insert_next(ptr, "Local", 42, parent);
+    _head->next->next->next->child = ptr;
 
     return 0;
 }

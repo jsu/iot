@@ -8,6 +8,7 @@
 #include <regex.h>
 #include <wiringSerial.h>
 #include <bcm2835.h>
+#include <signal.h>
 #include "lcd.h"
 #include "menu.h"
 
@@ -23,6 +24,12 @@
 #define RELAY4 26
 #define RELAY5 12
 #define BUZZER 16
+#define PWMPIN RPI_BPLUS_GPIO_J8_12
+#define PWM_DIVIDER BCM2835_PWM_CLOCK_DIVIDER_2
+#define PWM_CHANNEL 0
+#define MARK_SPACE 1
+#define ENABLE 1
+#define RANGE 1024
 
 struct status{
     int LED;
@@ -57,69 +64,6 @@ void LED_switch(struct mosquitto *mosq, int flag)
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
     bcm2835_gpio_write(LEDPIN, status.LED);
-}
-
-void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
-{
-    char buffer[80], buffer2[2], **b, c;
-    uint8_t i;
-    struct Node *ptr, *current_node;
-    status.machine = flag;
-    sprintf(buffer2, "%d", status.machine);
-    sprintf(buffer, "XYCS/%s/status/machine", SN);
-    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
-            buffer2, 0, false);
-    b = (char **)malloc(sizeof(b) * 4);
-    *(b + 0) = (char *)malloc(sizeof(*b) * 21);
-    *(b + 1) = (char *)malloc(sizeof(*b) * 21);
-    *(b + 2) = (char *)malloc(sizeof(*b) * 21);
-    *(b + 3) = (char *)malloc(sizeof(*b) * 21);
-
-    if(status.machine)
-    {
-        if(long_press)
-        {
-            lcd_clr();
-            mv_to_line(1);
-            lcd_str("Rest machine status!");
-        }
-        else
-        {
-            current_node = ptr = current_menu_node();
-            printf("current_menu_node: %d\n", current_node->id);
-            for(i = 0; i < 4; i++)
-            {
-                if(ptr)
-                {
-                    c = ptr->id == current_node->id ? '>' : ' ';
-                    sprintf(*(b + i), "%c %s", c, ptr->name);
-                    if(ptr->next)
-                        ptr = ptr->next;
-                }
-                else
-                    sprintf(*(b + i), " ");
-            }
-            lcd_display(b);
-        }
-    }
-    else
-        if(long_press)
-        {
-            lcd_clr();
-            mv_to_line(1);
-            lcd_str("Emergency");
-            mv_to_line(2);
-            lcd_str("     Shutdown");
-
-        }
-        else
-        {
-            sprintf(*(b + 0), "********************");
-            sprintf(*(b + 1), "*  Forest          *");
-            sprintf(*(b + 2), "*         Breath   *");
-            sprintf(*(b + 3), "********************");
-            lcd_display(b);
-        }
 }
 
 void EP_switch(struct mosquitto *mosq, int flag)
@@ -185,11 +129,16 @@ void buzzer_switch(struct mosquitto *mosq, int flag)
 void pwm_duty_switch(struct mosquitto *mosq, int flag)
 {
     char buffer[80], buffer2[2];
+    if(flag > 850)
+        flag = 850;
+    else if(flag < 0)
+        flag = 0;
     status.pwm_duty = flag;
     sprintf(buffer2, "%d", status.pwm_duty);
     sprintf(buffer, "XYCS/%s/status/pwm_duty", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    bcm2835_pwm_set_data(PWM_CHANNEL, flag);
 }
 
 void op_mode_switch(struct mosquitto *mosq, int flag)
@@ -200,6 +149,73 @@ void op_mode_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/op_mode", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+}
+
+void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
+{
+    char buffer[80], buffer2[2], **b, c;
+    uint8_t i;
+    struct Node *ptr, *current_node;
+    status.machine = flag;
+    sprintf(buffer2, "%d", status.machine);
+    sprintf(buffer, "XYCS/%s/status/machine", SN);
+    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
+            buffer2, 0, false);
+    b = (char **)malloc(sizeof(b) * 4);
+    *(b + 0) = (char *)malloc(sizeof(*b) * 21);
+    *(b + 1) = (char *)malloc(sizeof(*b) * 21);
+    *(b + 2) = (char *)malloc(sizeof(*b) * 21);
+    *(b + 3) = (char *)malloc(sizeof(*b) * 21);
+
+    if(status.machine)
+    {
+        if(long_press)
+        {
+            lcd_clr();
+            mv_to_line(1);
+            lcd_str("Rest machine status!");
+            pwm_duty_switch(mosq, 0);
+        }
+        else
+        {
+            pwm_duty_switch(mosq, 250);
+            current_node = ptr = current_menu_node();
+            printf("current_menu_node: %d\n", current_node->id);
+            for(i = 0; i < 4; i++)
+            {
+                if(ptr)
+                {
+                    c = ptr->id == current_node->id ? '>' : ' ';
+                    sprintf(*(b + i), "%c %s", c, ptr->name);
+                    if(ptr->next)
+                        ptr = ptr->next;
+                }
+                else
+                    sprintf(*(b + i), " ");
+            }
+            lcd_display(b);
+        }
+    }
+    else
+        if(long_press)
+        {
+            pwm_duty_switch(mosq, 0);
+            lcd_clr();
+            mv_to_line(1);
+            lcd_str("Emergency");
+            mv_to_line(2);
+            lcd_str("     Shutdown");
+
+        }
+        else
+        {
+            pwm_duty_switch(mosq, 0);
+            sprintf(*(b + 0), "********************");
+            sprintf(*(b + 1), "*  Forest          *");
+            sprintf(*(b + 2), "*         Breath   *");
+            sprintf(*(b + 3), "********************");
+            lcd_display(b);
+        }
 }
 
 void message_callback(struct mosquitto *mosq, void *userdata,
@@ -372,6 +388,15 @@ void *local_control_thread(void *mosq)
     bcm2835_gpio_write(RELAY5, HIGH);
     bcm2835_gpio_fsel(BUZZER, BCM2835_GPIO_FSEL_OUTP);
 
+    /* Init PWM */
+    bcm2835_gpio_fsel(PWMPIN, BCM2835_GPIO_FSEL_ALT5);
+    sleeper.tv_sec = 0;
+    sleeper.tv_nsec = 110000L;
+    nanosleep(&sleeper, NULL);
+    bcm2835_pwm_set_clock(PWM_DIVIDER);
+    bcm2835_pwm_set_mode(PWM_CHANNEL, MARK_SPACE, ENABLE);
+    bcm2835_pwm_set_range(PWM_CHANNEL, RANGE);
+
     /* Init Menu */
     init_menu();
     buffer = (char **)malloc(sizeof(buffer) * 4);
@@ -491,7 +516,8 @@ void *local_control_thread(void *mosq)
                 printf("low_node: %d\n", low_node->id);  
                 ptr = low_node;
                 for(i = 0; i < 3; i++)
-                    ptr = ptr->prev;
+                    if(ptr->prev)
+                        ptr = ptr->prev;
             }
             else
             {
@@ -543,6 +569,32 @@ void *local_control_thread(void *mosq)
                         sprintf(*(buffer + i), " ");
                 }
                 lcd_display(buffer);
+            }
+            else
+            {
+                switch(ptr->id)
+                {
+                    case 111:
+                        pwm_duty_switch(mosq, 0);
+                        break;
+                    case 112:
+                        pwm_duty_switch(mosq, 250);
+                        break;
+                    case 113:
+                        pwm_duty_switch(mosq, 400);
+                        break;
+                    case 114:
+                        pwm_duty_switch(mosq, 550);
+                        break;
+                    case 115:
+                        pwm_duty_switch(mosq, 700);
+                        break;
+                    case 116:
+                        pwm_duty_switch(mosq, 850);
+                        break;
+                    default:
+                        printf("Undefined command %d\n", ptr->id);
+                }
             }
         }
 
@@ -725,6 +777,13 @@ void *sensor_publish_thread(void *mosq)
     pthread_exit(NULL);
 }
 
+void signal_handler(int signum)
+{
+    bcm2835_pwm_set_data(PWM_CHANNEL, 0);
+    bcm2835_close();
+    exit(0);
+}
+
 int main(int argc, char *argv[])
 {
     char *host = "iot.eclipse.org";
@@ -732,6 +791,9 @@ int main(int argc, char *argv[])
     int keepalive = 60;
     struct mosquitto *mosq = NULL;
     pthread_t id_sensor_pub, id_status_pub, id_local_ctrl, id_remote_ctrl;
+    signal(SIGINT, signal_handler);
+    signal(SIGKILL, signal_handler);
+    signal(SIGSTOP, signal_handler);
 
     bcm2835_init();
     bcm2835_gpio_fsel(COMPIN, BCM2835_GPIO_FSEL_OUTP);
