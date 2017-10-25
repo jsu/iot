@@ -1,8 +1,4 @@
 #include "lcd.h"
-#include <bcm2835.h>
-#include <stdio.h>
-#include <time.h>
-#include <stdlib.h>
 
 void lcd_cmd(uint8_t cmd)
 {
@@ -151,3 +147,18 @@ void init_lcd()
     sleeper.tv_nsec = 1520000L;
     nanosleep(&sleeper, NULL);
 }
+
+/*
+int main(int argc, char **argv)
+{
+    char buffer[1];
+    bcm2835_init();
+    if(!bcm2835_i2c_begin()) return 1;
+    bcm2835_i2c_setSlaveAddress(LCD_ADDRESS);
+    init_lcd();
+    buffer[0] = 0x08;
+    bcm2835_i2c_write(buffer, 1);
+    lcd_cmd(buffer[0]);
+    return 0;
+}
+*/
