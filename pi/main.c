@@ -17,12 +17,15 @@
 #define LEDPIN 5
 #define BUTTON1 23
 #define BUTTON2 24
-#define RELAYIT 27
 #define RELAY1 5
 #define RELAY2 6
 #define RELAY3 13
 #define RELAY4 26
-#define RELAY5 12
+#define RELAY_ON LOW
+#define RELAY_OFF HIGH
+#define RELAYIT 27
+#define RELAYIT_ON HIGH
+#define RELAYIT_OFF LOW
 #define BUZZER 16
 #define PWMPIN RPI_BPLUS_GPIO_J8_12
 #define PWM_DIVIDER BCM2835_PWM_CLOCK_DIVIDER_2
@@ -138,6 +141,10 @@ void pwm_duty_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/pwm_duty", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    if(flag)
+        bcm2835_gpio_write(RELAYIT, RELAYIT_ON);
+    else
+        bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
     bcm2835_pwm_set_data(PWM_CHANNEL, flag);
 }
 
@@ -377,15 +384,15 @@ void *local_control_thread(void *mosq)
     bcm2835_gpio_fsel(COMPIN, BCM2835_GPIO_FSEL_OUTP);
     bcm2835_gpio_fsel(RELAYIT, BCM2835_GPIO_FSEL_OUTP);
     bcm2835_gpio_fsel(RELAY1, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY1, HIGH);
+    bcm2835_gpio_write(RELAY1, RELAY_OFF);
     bcm2835_gpio_fsel(RELAY2, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY2, HIGH);
+    bcm2835_gpio_write(RELAY2, RELAY_OFF);
     bcm2835_gpio_fsel(RELAY3, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY3, HIGH);
+    bcm2835_gpio_write(RELAY3, RELAY_OFF);
     bcm2835_gpio_fsel(RELAY4, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY4, HIGH);
-    bcm2835_gpio_fsel(RELAY5, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY5, HIGH);
+    bcm2835_gpio_write(RELAY4, RELAY_OFF);
+    bcm2835_gpio_fsel(RELAYIT, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
     bcm2835_gpio_fsel(BUZZER, BCM2835_GPIO_FSEL_OUTP);
 
     /* Init PWM */
@@ -780,6 +787,11 @@ void *sensor_publish_thread(void *mosq)
 void signal_handler(int signum)
 {
     bcm2835_pwm_set_data(PWM_CHANNEL, 0);
+    bcm2835_gpio_write(RELAY1, RELAY_OFF);
+    bcm2835_gpio_write(RELAY2, RELAY_OFF);
+    bcm2835_gpio_write(RELAY3, RELAY_OFF);
+    bcm2835_gpio_write(RELAY4, RELAY_OFF);
+    bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
     bcm2835_close();
     exit(0);
 }
