@@ -30,10 +30,16 @@
 #define PWMPIN RPI_BPLUS_GPIO_J8_12
 #define PWM_DIVIDER BCM2835_PWM_CLOCK_DIVIDER_2
 #define PWM_CHANNEL 0
+#define PWM_DUTY_250 250
+#define PWM_DUTY_400 400
+#define PWM_DUTY_550 550
+#define PWM_DUTY_700 700
+#define PWM_DUTY_850 850
 #define MARK_SPACE 1
 #define ENABLE 1
 #define RANGE 1024
-
+#define ON 1
+#define OFF 0
 struct status{
     int LED;
     int machine;
@@ -77,6 +83,10 @@ void EP_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/EP", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    if(flag)
+        bcm2835_gpio_write(RELAY1, RELAY_ON);
+    else
+        bcm2835_gpio_write(RELAY1, RELAY_OFF);
 }
 
 void UV_switch(struct mosquitto *mosq, int flag)
@@ -87,6 +97,10 @@ void UV_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/UV", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    if(flag)
+        bcm2835_gpio_write(RELAY2, RELAY_ON);
+    else
+        bcm2835_gpio_write(RELAY2, RELAY_OFF);
 }
 
 void ozone_switch(struct mosquitto *mosq, int flag)
@@ -97,6 +111,10 @@ void ozone_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/ozone", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    if(flag)
+        bcm2835_gpio_write(RELAY3, RELAY_ON);
+    else
+        bcm2835_gpio_write(RELAY3, RELAY_OFF);
 }
 
 void ion_switch(struct mosquitto *mosq, int flag)
@@ -107,6 +125,10 @@ void ion_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/ion", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    if(flag)
+        bcm2835_gpio_write(RELAY4, RELAY_ON);
+    else
+        bcm2835_gpio_write(RELAY4, RELAY_OFF);
 }
 
 void fan_switch(struct mosquitto *mosq, int flag)
@@ -117,6 +139,10 @@ void fan_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/fan", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
+    if(flag)
+        bcm2835_gpio_write(RELAYIT, RELAYIT_ON);
+    else
+        bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
 }
 
 void buzzer_switch(struct mosquitto *mosq, int flag)
@@ -141,10 +167,6 @@ void pwm_duty_switch(struct mosquitto *mosq, int flag)
     sprintf(buffer, "XYCS/%s/status/pwm_duty", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
-    if(flag)
-        bcm2835_gpio_write(RELAYIT, RELAYIT_ON);
-    else
-        bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
     bcm2835_pwm_set_data(PWM_CHANNEL, flag);
 }
 
@@ -181,11 +203,13 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
             lcd_clr();
             mv_to_line(1);
             lcd_str("Rest machine status!");
-            pwm_duty_switch(mosq, 0);
+            fan_switch(mosq, OFF);
+            pwm_duty_switch(mosq, OFF);
         }
         else
         {
-            pwm_duty_switch(mosq, 250);
+            fan_switch(mosq, ON);
+            pwm_duty_switch(mosq, PWM_DUTY_250);
             current_node = ptr = current_menu_node();
             printf("current_menu_node: %d\n", current_node->id);
             for(i = 0; i < 4; i++)
@@ -206,7 +230,8 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
     else
         if(long_press)
         {
-            pwm_duty_switch(mosq, 0);
+            fan_switch(mosq, OFF);
+            pwm_duty_switch(mosq, OFF);
             lcd_clr();
             mv_to_line(1);
             lcd_str("Emergency");
@@ -216,7 +241,8 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
         }
         else
         {
-            pwm_duty_switch(mosq, 0);
+            fan_switch(mosq, OFF);
+            pwm_duty_switch(mosq, OFF);
             sprintf(*(b + 0), "********************");
             sprintf(*(b + 1), "*  Forest          *");
             sprintf(*(b + 2), "*         Breath   *");
@@ -582,22 +608,52 @@ void *local_control_thread(void *mosq)
                 switch(ptr->id)
                 {
                     case 111:
-                        pwm_duty_switch(mosq, 0);
+                        fan_switch(mosq, OFF);
+                        pwm_duty_switch(mosq, OFF);
                         break;
                     case 112:
-                        pwm_duty_switch(mosq, 250);
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
                         break;
                     case 113:
-                        pwm_duty_switch(mosq, 400);
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_400);
                         break;
                     case 114:
-                        pwm_duty_switch(mosq, 550);
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_550);
                         break;
                     case 115:
-                        pwm_duty_switch(mosq, 700);
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_700);
                         break;
                     case 116:
-                        pwm_duty_switch(mosq, 850);
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_850);
+                        break;
+                    case 121:
+                        EP_switch(mosq, ON);
+                        break;
+                    case 122:
+                        EP_switch(mosq, OFF);
+                        break;
+                    case 131:
+                        ion_switch(mosq, ON);
+                        break;
+                    case 132:
+                        ion_switch(mosq, OFF);
+                        break;
+                    case 141:
+                        UV_switch(mosq, OFF);
+                        break;
+                    case 142:
+                        UV_switch(mosq, ON);
+                        break;
+                    case 151:
+                        ozone_switch(mosq, OFF);
+                        break;
+                    case 152:
+                        ozone_switch(mosq, ON);
                         break;
                     default:
                         printf("Undefined command %d\n", ptr->id);

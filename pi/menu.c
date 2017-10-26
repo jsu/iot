@@ -97,33 +97,21 @@ int init_menu()
 
     parent = _head->child->next->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "UV Light Start", 141, parent);
-    ptr = insert_next(ptr, "UV Light Stop", 142, parent);
-    ptr = insert_next(ptr, "UV Set Time", 143, parent);
+    ptr = insert_next(ptr, "UV Light Stop", 141, parent);
+    ptr = insert_next(ptr, "UV 10 Minutes", 142, parent);
+    ptr = insert_next(ptr, "UV 15 Minutes", 143, parent);
+    ptr = insert_next(ptr, "UV 30 Minutes", 144, parent);
+    ptr = insert_next(ptr, "UV 60 Minutes", 145, parent);
     _head->child->next->next->next->child = ptr;
-
-    parent = _head->child->next->next->next->child;
-    ptr = NULL;
-    ptr = insert_next(ptr, "UV 10 Minutes", 1431, parent);
-    ptr = insert_next(ptr, "UV 15 Minutes", 1432, parent);
-    ptr = insert_next(ptr, "UV 30 Minutes", 1433, parent);
-    ptr = insert_next(ptr, "UV 60 Minutes", 1433, parent);
-    _head->child->next->next->next->child->child = ptr;
 
     parent = _head->child->next->next->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "O3 Start", 151, parent);
-    ptr = insert_next(ptr, "O3 Stop", 152, parent);
-    ptr = insert_next(ptr, "O3 Set Time", 153, parent);
+    ptr = insert_next(ptr, "O3 Stop", 151, parent);
+    ptr = insert_next(ptr, "O3  5 Minutes", 152, parent);
+    ptr = insert_next(ptr, "O3 10 Minutes", 153, parent);
+    ptr = insert_next(ptr, "O3 15 Minutes", 154, parent);
+    ptr = insert_next(ptr, "O3 30 Minutes", 155, parent);
     _head->child->next->next->next->next->child = ptr;
-
-    parent = _head->child->next->next->next->next->child;
-    ptr = NULL;
-    ptr = insert_next(ptr, "O3  5 Minutes", 1531, parent);
-    ptr = insert_next(ptr, "O3 10 Minutes", 1532, parent);
-    ptr = insert_next(ptr, "O3 15 Minutes", 1533, parent);
-    ptr = insert_next(ptr, "O3 30 Minutes", 1534, parent);
-    _head->child->next->next->next->next->child->child = ptr;
 
     parent = _head->next;
     ptr = NULL;
