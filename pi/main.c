@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <mosquitto.h>
+#include <termios.h>
 #include <pthread.h>
 #include <time.h>
 #include <stdlib.h>
@@ -10,6 +11,7 @@
 #include <regex.h>
 #include <bcm2835.h>
 #include <signal.h>
+
 #include "lcd.h"
 #include "menu.h"
 
@@ -62,12 +64,23 @@ struct status{
     int op_mode;
 }status;
 
+struct _sensor{
+    float humidity;
+    float temperature; 
+    float prd_current;
+    int motion;
+    float PM25;
+    float fan_current;
+    int UV;
+    float ozone;
+}_sensor;
+
 int strtoint(char *str)
 {
     char c, *ptr = str;
     int n = 0;
     /* char c should be 0-9 */
-    while((c = *ptr++) >= 0x30 && c <= 0x39 && c != 0x2f)
+    while((c = *ptr++) >= '0' && c <= '9')
         n = n * 10 + c - '0';
 
     return n;
@@ -254,6 +267,10 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
             lcd_str("Rest machine status!");
             fan_switch(mosq, OFF);
             pwm_duty_switch(mosq, OFF);
+            EP_switch(mosq, OFF);
+            ion_switch(mosq, OFF);
+            UV_switch(mosq, OFF);
+            ozone_switch(mosq, OFF);
         }
         else
         {
@@ -277,10 +294,15 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
         }
     }
     else
+    {
+        fan_switch(mosq, OFF);
+        pwm_duty_switch(mosq, OFF);
+        EP_switch(mosq, OFF);
+        ion_switch(mosq, OFF);
+        UV_switch(mosq, OFF);
+        ozone_switch(mosq, OFF);
         if(long_press)
         {
-            fan_switch(mosq, OFF);
-            pwm_duty_switch(mosq, OFF);
             lcd_clr();
             mv_to_line(1);
             lcd_str("Emergency");
@@ -290,14 +312,13 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
         }
         else
         {
-            fan_switch(mosq, OFF);
-            pwm_duty_switch(mosq, OFF);
             sprintf(*(b + 0), "********************");
             sprintf(*(b + 1), "*  Forest          *");
             sprintf(*(b + 2), "*         Breath   *");
             sprintf(*(b + 3), "********************");
             lcd_display(b);
         }
+    }
 }
 
 void message_callback(struct mosquitto *mosq, void *userdata,
@@ -444,10 +465,12 @@ void *local_control_thread(void *mosq)
 {
     uint8_t button_status[] = {0, 0, 0, 0, 0};
     uint8_t v = 0x05; /* voltage could be 0x0f when 5v or 0x09 3.3v */
-    uint32_t counter = 0, uv_timer, o3_timer;
-    uint8_t long_press = 0, i, pos;
+    uint32_t counter = 0, uv_timer, o3_timer, comfort_timer;
+    uint32_t uvm_timer, uv_counter, o3m_timer;
+    uint8_t long_press = 0, i, pos, uv_direction;
+    int pwm_duty;
     struct timespec sleeper;
-    time_t uv_time, o3_time;
+    time_t uv_time, o3_time, comfort_time, uvm_time, o3m_time;
     struct Node *ptr, *current_node, *high_node, *low_node, *prev_node;
     char **buffer, c;
     char out_ch1[] = {0x06, 0x40, 0x00};
@@ -767,30 +790,45 @@ void *local_control_thread(void *mosq)
                         break;
                     case 2:
                         /* comfort mode */
-                        mode = MODE_COMFORT;
                         comfort_mode_switch(mosq, ON);
-                        fan_switch(mosq, ON);
-                        pwm_duty_switch(mosq, 250);
-                        /*
-                        if(pm25 > 35)
+                        if(_sensor.PM25 > 15)
                         {
-                            ions_switch(mosq, ON);
+                            mode = MODE_COMFORT;
+                            fan_switch(mosq, ON);
+                            pwm_duty_switch(mosq, 250);
+                            UV_switch(mosq, OFF);
+                            ozone_switch(mosq, OFF);
                             EP_switch(mosq, ON);
+                            ion_switch(mosq, ON);
                         }
-                        else if(pm25 < 10)
-                        {
-                             
-                        }
-                        */
                         break;
                     case 31:
-                        mode = MODE_UV;
-                        uv_mode_switch(mosq, ON);
+                        if(_sensor.temperature < 60)
+                        {
+                            mode = MODE_UV;
+                            UV_switch(mosq, ON);
+                            uv_mode_switch(mosq, ON);
+                            uvm_time = time(NULL);
+                            uvm_timer = 60;
+                            pwm_duty = 250;
+                            uv_counter = 0;
+                            EP_switch(mosq, OFF);
+                            ion_switch(mosq, OFF);
+                        }
                         /* UV, O3, UV & O3 Hybrid */
                         break;
                     case 32:
-                        mode = MODE_O3;
-                        o3_mode_switch(mosq, ON);
+                        if(_sensor.ozone <= 500 || _sensor.temperature < 60)
+                        {
+                            mode = MODE_O3;
+                            o3_mode_switch(mosq, ON);
+                            o3_time = time(NULL);
+                            o3_timer = 60;
+                            pwm_duty = 850;
+                            ozone_switch(mosq, ON);
+                            EP_switch(mosq, OFF);
+                            ion_switch(mosq, OFF);
+                        }
                         break;
                     case 33:
                         mode = MODE_HYBRID;
@@ -823,6 +861,104 @@ void *local_control_thread(void *mosq)
             o3_time = 0;
             o3_timer = 0;
             ozone_switch(mosq, OFF);
+        }
+
+        if(mode == MODE_COMFORT)
+        {
+            if(comfort_timer)
+            {
+                if(_sensor.PM25 < 10 && 
+                        time(NULL) - comfort_time > comfort_timer)
+                {
+                    EP_switch(mosq, OFF);
+                    ion_switch(mosq, OFF);
+                    comfort_time = 0;
+                    comfort_timer = 0;
+                    mode = 0;
+                }
+                else
+                    comfort_time = time(NULL);
+            }
+            else if(_sensor.PM25 < 10)
+            {
+                comfort_time = time(NULL);
+                comfort_timer = 10 * 60;
+            }
+
+            pwm_duty = (((_sensor.PM25 - 15) / 15) + 1) * 250;
+            if(pwm_duty < 250)
+                pwm_duty = 250;
+            pwm_duty_switch(mosq, pwm_duty);
+        }
+
+        if(mode == MODE_UV)
+        {
+            uv_counter++;
+            if(uv_counter >= 10)
+            {
+                if(pwm_duty <= 250)
+                    uv_direction = 1;    
+                else if(pwm_duty >= 850)
+                    uv_direction = -1;
+                pwm_duty += uv_direction;
+                pwm_duty_switch(mosq, pwm_duty);
+                uv_counter = 0;
+            }
+
+            if(_sensor.temperature > 60)
+            {
+                UV_switch(mosq, OFF);
+                mode = 0;
+                pwm_duty_switch(mosq, 250);
+                uv_counter = 0;
+                uv_mode_switch(mosq, ON);
+            }
+
+            if(uvm_timer == 60)
+            {
+                uvm_time = time(NULL);
+                uvm_timer = 9 * 60;
+            }
+
+            if(uvm_timer == 9 * 60)
+            {
+                if(_sensor.motion || time(NULL) - uvm_time > uvm_timer)
+                {
+                    uv_mode_switch(mosq, ON);
+                    UV_switch(mosq, OFF);
+                    mode = 0;
+                    pwm_duty_switch(mosq, 250);
+                    uv_counter = 0;
+                }
+            }
+        }
+
+        if(mode == MODE_O3)
+        {
+            if(_sensor.ozone > 800)
+            {
+                pwm_duty_switch(mosq, 250); 
+                ozone_switch(mosq, OFF);
+                o3_mode_switch(mosq, OFF);
+            }
+
+            if(o3m_timer == 60)
+            {
+                o3m_time = time(NULL);
+                o3m_timer = 9 * 60;
+            }
+
+            if(o3m_timer == 9 * 60)
+            {
+                if(_sensor.motion || time(NULL) - o3m_time > o3m_timer)
+                {
+                    printf("You have moved !!!!");
+                    o3_mode_switch(mosq, OFF);
+                    ozone_switch(mosq, OFF);
+                    o3m_time = 0;
+                    o3m_timer = 0;
+                }
+            }
         }
 
         bcm2835_spi_transfernb(out_ch5, ch_data, 3);
@@ -933,22 +1069,41 @@ void init_status()
     status.op_mode = 0;
 }
 
+void init_sensor()
+{
+    _sensor.humidity = 0;
+    _sensor.temperature = 0;
+    _sensor.prd_current = 0;
+    _sensor.motion = 0;
+    _sensor.PM25 = 0;
+    _sensor.fan_current = 0;
+    _sensor.UV = 0;
+    _sensor.ozone = 0;
+}
+
 void *sensor_publish_thread(void *mosq)
 {
     char *buffer, *buffer2, *ptr, *sensor, *value;
     char *portname = "/dev/ttyUSB0";	
+    speed_t baud = 9600;
+    struct termios options;
     char c;
     const char delim[2] = ",";
     int fd;
     buffer = (char *)malloc(sizeof(buffer) * 80);
     buffer2 = (char *)malloc(sizeof(buffer2) * 80);
     init_status();
+    init_sensor();
 
     if((fd = open(portname, O_RDONLY)) < 0)
     {
         fprintf(stderr, "Unable to open serial device %s\n", strerror(errno));
         pthread_exit(NULL); 
     }
+    tcgetattr(fd, &options);
+    cfmakeraw(&options);
+    cfsetispeed(&options, baud);
+    cfsetospeed(&options, baud);
 
     for(;;)
     {
@@ -968,42 +1123,56 @@ void *sensor_publish_thread(void *mosq)
 
         if(strcmp(sensor, "humidity") == 0)
         {
+            _sensor.humidity = strtof(value, NULL);
             sprintf(buffer2, "XYCS/%s/sensor/humidity", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "temperature") == 0)
         {
+            _sensor.temperature = strtof(value, NULL);
             sprintf(buffer2, "XYCS/%s/sensor/temperature", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "prd_current") == 0)
         {
+            _sensor.prd_current = strtof(value, NULL);
             sprintf(buffer2, "XYCS/%s/sensor/prd_current", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "motion") == 0)
         {
+            _sensor.prd_current = strtoint(value);
             sprintf(buffer2, "XYCS/%s/sensor/motion", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "fan_current") == 0)
         {
+            _sensor.fan_current = strtof(value, NULL);
             sprintf(buffer2, "XYCS/%s/sensor/fan_current", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
+                    false);
+        }
+        else if(strcmp(sensor, "PM25") == 0)
+        {
+            _sensor.PM25 = strtof(value, NULL);
+            sprintf(buffer2, "XYCS/%s/sensor/PM25", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "UV") == 0)
         {
+            _sensor.UV = strtoint(value);
             sprintf(buffer2, "XYCS/%s/sensor/UV", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "ozone") == 0)
         {
+            _sensor.ozone = strtof(value, NULL);
             sprintf(buffer2, "XYCS/%s/sensor/ozone", SN);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
@@ -1050,12 +1219,11 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Unable to connect.\n");
         return 1;
     }
-
     pthread_create(&id_sensor_pub, NULL, sensor_publish_thread, (void *)mosq);
-    /*pthread_create(&id_status_pub, NULL, status_publish_thread, (void *)mosq);*/
+    pthread_create(&id_status_pub, NULL, status_publish_thread, (void *)mosq);
     pthread_create(&id_local_ctrl, NULL, local_control_thread, (void *)mosq);
     pthread_create(&id_remote_ctrl, NULL, remote_control_thread, (void *)mosq);
-    /*pthread_join(id_sensor_pub, NULL);*/
+    pthread_join(id_sensor_pub, NULL);
     pthread_join(id_status_pub, NULL);
     pthread_join(id_local_ctrl, NULL);
     pthread_join(id_remote_ctrl, NULL);

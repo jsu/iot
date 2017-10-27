@@ -117,7 +117,7 @@ int init_menu()
     ptr = NULL;
     ptr = insert_next(ptr, "UV Mode", 31, parent);
     ptr = insert_next(ptr, "O3 Mode", 32, parent);
-    ptr = insert_next(ptr, "UV/O3 Hybrid", 33, parent);
+    /*ptr = insert_next(ptr, "UV/O3 Hybrid", 33, parent);*/
     _head->next->next->child = ptr;
 
     parent = _head->next->next->next;
