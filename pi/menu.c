@@ -113,24 +113,17 @@ int init_menu()
     ptr = insert_next(ptr, "O3 30 Minutes", 155, parent);
     _head->child->next->next->next->next->child = ptr;
 
-    parent = _head->next;
-    ptr = NULL;
-    ptr = insert_next(ptr, "Comfort Start", 21, parent);
-    ptr = insert_next(ptr, "Comfort Stop", 22, parent);
-    _head->next->child = ptr;
-
     parent = _head->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "Purify Stop", 31, parent);
-    ptr = insert_next(ptr, "UV Mode", 32, parent);
-    ptr = insert_next(ptr, "O3 Mode", 33, parent);
-    ptr = insert_next(ptr, "UV/O3 Hybrid", 34, parent);
+    ptr = insert_next(ptr, "UV Mode", 31, parent);
+    ptr = insert_next(ptr, "O3 Mode", 32, parent);
+    ptr = insert_next(ptr, "UV/O3 Hybrid", 33, parent);
     _head->next->next->child = ptr;
 
     parent = _head->next->next->next;
     ptr = NULL;
-    ptr = insert_next(ptr, "Remote", 41, parent);
-    ptr = insert_next(ptr, "Local", 42, parent);
+    ptr = insert_next(ptr, "Local Only", 41, parent);
+    ptr = insert_next(ptr, "Local & Remote", 42, parent);
     _head->next->next->next->child = ptr;
 
     return 0;

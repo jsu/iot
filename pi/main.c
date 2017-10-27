@@ -4,15 +4,16 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <regex.h>
-#include <wiringSerial.h>
 #include <bcm2835.h>
 #include <signal.h>
 #include "lcd.h"
 #include "menu.h"
 
-#define SN "03"
+#define SN "317"
 #define COMPIN 22
 #define LEDPIN 5
 #define BUTTON1 23
@@ -40,6 +41,14 @@
 #define RANGE 1024
 #define ON 1
 #define OFF 0
+#define MODE_COMFORT 1
+#define MODE_UV 2
+#define MODE_O3 3
+#define MODE_HYBRID 4
+
+uint8_t remote = ON;
+uint8_t mode = OFF;
+
 struct status{
     int LED;
     int machine;
@@ -180,6 +189,46 @@ void op_mode_switch(struct mosquitto *mosq, int flag)
             buffer2, 0, false);
 }
 
+void comfort_mode_switch(struct mosquitto *mosq, int flag)
+{
+    char buffer[80], buffer2[2];
+    status.op_mode = flag;
+    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer, "XYCS/%s/status/comfort_mode", SN);
+    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
+            buffer2, 0, false);
+}
+
+void uv_mode_switch(struct mosquitto *mosq, int flag)
+{
+    char buffer[80], buffer2[2];
+    status.op_mode = flag;
+    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer, "XYCS/%s/status/UV_mode", SN);
+    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
+            buffer2, 0, false);
+}
+
+void o3_mode_switch(struct mosquitto *mosq, int flag)
+{
+    char buffer[80], buffer2[2];
+    status.op_mode = flag;
+    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer, "XYCS/%s/status/comfort_mode", SN);
+    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
+            buffer2, 0, false);
+}
+
+void hybrid_mode_switch(struct mosquitto *mosq, int flag)
+{
+    char buffer[80], buffer2[2];
+    status.op_mode = flag;
+    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer, "XYCS/%s/status/comfort_mode", SN);
+    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
+            buffer2, 0, false);
+}
+
 void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
 {
     char buffer[80], buffer2[2], **b, c;
@@ -276,7 +325,7 @@ void message_callback(struct mosquitto *mosq, void *userdata,
     match[matchptr[1].rm_eo] = 0;
     strcpy(match, match + matchptr[1].rm_so);
 
-    if(message->payloadlen){
+    if(message->payloadlen && remote){
         if(strcmp(match, "LED") == 0)
         {
             if((i = strtoint(message->payload)) != status.LED)
@@ -395,9 +444,10 @@ void *local_control_thread(void *mosq)
 {
     uint8_t button_status[] = {0, 0, 0, 0, 0};
     uint8_t v = 0x05; /* voltage could be 0x0f when 5v or 0x09 3.3v */
-    uint32_t counter = 0;
+    uint32_t counter = 0, uv_timer, o3_timer;
     uint8_t long_press = 0, i, pos;
     struct timespec sleeper;
+    time_t uv_time, o3_time;
     struct Node *ptr, *current_node, *high_node, *low_node, *prev_node;
     char **buffer, c;
     char out_ch1[] = {0x06, 0x40, 0x00};
@@ -467,6 +517,7 @@ void *local_control_thread(void *mosq)
         /* Must put sleeper before if-continue stmt */
         nanosleep(&sleeper, NULL);
 
+        /* Button 1, Start/Stop */
         bcm2835_spi_transfernb(out_ch1, ch_data, 3);
         button_status[0] = FSM(ch_data[1] > v ? 1 : 0, button_status[0]);
         if(button_status[0] == 5)
@@ -608,8 +659,11 @@ void *local_control_thread(void *mosq)
                 switch(ptr->id)
                 {
                     case 111:
-                        fan_switch(mosq, OFF);
-                        pwm_duty_switch(mosq, OFF);
+                        if(!uv_timer && !o3_timer)
+                        {
+                            fan_switch(mosq, OFF);
+                            pwm_duty_switch(mosq, OFF);
+                        }
                         break;
                     case 112:
                         fan_switch(mosq, ON);
@@ -645,15 +699,109 @@ void *local_control_thread(void *mosq)
                         break;
                     case 141:
                         UV_switch(mosq, OFF);
+                        uv_time = 0;
+                        uv_timer = 0;
                         break;
                     case 142:
+                        /* 10, 15, 30, 60 minutes */
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
                         UV_switch(mosq, ON);
+                        uv_time = time(NULL);
+                        uv_timer = 10 * 60;
+                        break;
+                    case 143:
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
+                        UV_switch(mosq, ON);
+                        uv_time = time(NULL);
+                        uv_timer = 15 * 60;
+                        break;
+                    case 144:
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
+                        UV_switch(mosq, ON);
+                        uv_time = time(NULL);
+                        uv_timer = 30 * 60;
+                        break;
+                    case 145:
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
+                        UV_switch(mosq, ON);
+                        uv_time = time(NULL);
+                        uv_timer = 60 * 60;
                         break;
                     case 151:
                         ozone_switch(mosq, OFF);
+                        o3_time = 0;
+                        o3_timer = 0;
                         break;
                     case 152:
+                        /* 5, 10, 15, 30 minutes */
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
                         ozone_switch(mosq, ON);
+                        o3_time = time(NULL);
+                        o3_timer = 5 * 60;
+                        break;
+                    case 153:
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
+                        ozone_switch(mosq, ON);
+                        o3_time = time(NULL);
+                        o3_timer = 10 * 60;
+                        break;
+                    case 154:
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
+                        ozone_switch(mosq, ON);
+                        o3_time = time(NULL);
+                        o3_timer = 15 * 60;
+                        break;
+                    case 155:
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, PWM_DUTY_250);
+                        ozone_switch(mosq, ON);
+                        o3_time = time(NULL);
+                        o3_timer = 30 * 60;
+                        break;
+                    case 2:
+                        /* comfort mode */
+                        mode = MODE_COMFORT;
+                        comfort_mode_switch(mosq, ON);
+                        fan_switch(mosq, ON);
+                        pwm_duty_switch(mosq, 250);
+                        /*
+                        if(pm25 > 35)
+                        {
+                            ions_switch(mosq, ON);
+                            EP_switch(mosq, ON);
+                        }
+                        else if(pm25 < 10)
+                        {
+                             
+                        }
+                        */
+                        break;
+                    case 31:
+                        mode = MODE_UV;
+                        uv_mode_switch(mosq, ON);
+                        /* UV, O3, UV & O3 Hybrid */
+                        break;
+                    case 32:
+                        mode = MODE_O3;
+                        o3_mode_switch(mosq, ON);
+                        break;
+                    case 33:
+                        mode = MODE_HYBRID;
+                        hybrid_mode_switch(mosq, ON);
+                        break;
+                    case 41:
+                        /* Local, Remote */
+                        remote = OFF;
+                        break;
+                    case 42:
+                        remote = ON;
                         break;
                     default:
                         printf("Undefined command %d\n", ptr->id);
@@ -661,10 +809,27 @@ void *local_control_thread(void *mosq)
             }
         }
 
+
+        if(uv_timer && time(NULL) - uv_time > uv_timer) 
+        {
+            /* stop service */ 
+            uv_time = 0;
+            uv_timer = 0;
+            UV_switch(mosq, OFF);
+        }
+
+        if(o3_timer && time(NULL) - o3_time > o3_timer)
+        {
+            o3_time = 0;
+            o3_timer = 0;
+            ozone_switch(mosq, OFF);
+        }
+
         bcm2835_spi_transfernb(out_ch5, ch_data, 3);
         button_status[4] = FSM(ch_data[1] > v ? 1 : 0, button_status[4]);
         if(button_status[4] == 5)
         {
+            if(mode) mode = 0;
             prev_node = current_menu_node();
             current_node = ptr = menu_b();
             printf("btn5 [Exit] pressed %d prev %d\n", ptr->id, prev_node->id);
@@ -770,15 +935,16 @@ void init_status()
 
 void *sensor_publish_thread(void *mosq)
 {
-    char *buffer, *ptr, *sensor, *value;
+    char *buffer, *buffer2, *ptr, *sensor, *value;
     char *portname = "/dev/ttyUSB0";	
     char c;
     const char delim[2] = ",";
     int fd;
     buffer = (char *)malloc(sizeof(buffer) * 80);
+    buffer2 = (char *)malloc(sizeof(buffer2) * 80);
     init_status();
 
-    if((fd = serialOpen(portname, 9600)) < 0)
+    if((fd = open(portname, O_RDONLY)) < 0)
     {
         fprintf(stderr, "Unable to open serial device %s\n", strerror(errno));
         pthread_exit(NULL); 
@@ -787,52 +953,59 @@ void *sensor_publish_thread(void *mosq)
     for(;;)
     {
         ptr = buffer;
-        while((c = serialGetchar(fd)) != '\n')
-            *ptr++ = c;
+        for(;;)
+        {
+            read(fd, &c, 1); 
+            if(c != '\n')
+                *ptr++ = c;
+            else
+                break;
+        }
         *ptr = '\0';
+
         sensor = strtok(buffer, delim);
         value = strtok(NULL, delim);
 
         if(strcmp(sensor, "humidity") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/humidity", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/humidity", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "temperature") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/temperature", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/temperature", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "prd_current") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/prd_current", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/prd_current", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
-        else if(strcmp(sensor, "motion"))
+        else if(strcmp(sensor, "motion") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/motion", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/motion", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
-        else if(strcmp(sensor, "fan_current"))
+        else if(strcmp(sensor, "fan_current") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/fan_current", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/fan_current", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
-        else if(strcmp(sensor, "UV"))
+        else if(strcmp(sensor, "UV") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/UV", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/UV", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
-        else if(strcmp(sensor, "ozone"))
+        else if(strcmp(sensor, "ozone") == 0)
         {
-            sprintf(buffer, "XYCS/%s/sensor/ozone", SN);
-            mosquitto_publish(mosq, NULL, buffer, strlen(value), value, 0,
+            sprintf(buffer2, "XYCS/%s/sensor/ozone", SN);
+            mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
     }
@@ -879,10 +1052,10 @@ int main(int argc, char *argv[])
     }
 
     pthread_create(&id_sensor_pub, NULL, sensor_publish_thread, (void *)mosq);
-    pthread_create(&id_status_pub, NULL, status_publish_thread, (void *)mosq);
+    /*pthread_create(&id_status_pub, NULL, status_publish_thread, (void *)mosq);*/
     pthread_create(&id_local_ctrl, NULL, local_control_thread, (void *)mosq);
     pthread_create(&id_remote_ctrl, NULL, remote_control_thread, (void *)mosq);
-    pthread_join(id_sensor_pub, NULL);
+    /*pthread_join(id_sensor_pub, NULL);*/
     pthread_join(id_status_pub, NULL);
     pthread_join(id_local_ctrl, NULL);
     pthread_join(id_remote_ctrl, NULL);
