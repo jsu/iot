@@ -1,18 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-
-struct Node
-{
-    char *name;
-    uint16_t id;
-    struct Node *parent;
-    struct Node *child;
-    struct Node *prev;
-    struct Node *next;
-};
+#include "menu.h"
 
 struct Node *_head, *_curr_node;
 

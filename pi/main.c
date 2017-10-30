@@ -9,9 +9,9 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <regex.h>
-#include <bcm2835.h>
 #include <signal.h>
 
+#include "bcm2835.h"
 #include "lcd.h"
 #include "menu.h"
 
@@ -19,7 +19,7 @@
 #define COMPIN 22
 #define LEDPIN 5
 #define BUTTON1 23
-#define BUTTON2 24
+
 #define RELAY1 5
 #define RELAY2 6
 #define RELAY3 13
@@ -223,16 +223,6 @@ void uv_mode_switch(struct mosquitto *mosq, int flag)
 }
 
 void o3_mode_switch(struct mosquitto *mosq, int flag)
-{
-    char buffer[80], buffer2[2];
-    status.op_mode = flag;
-    sprintf(buffer2, "%d", status.op_mode);
-    sprintf(buffer, "XYCS/%s/status/comfort_mode", SN);
-    mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
-            buffer2, 0, false);
-}
-
-void hybrid_mode_switch(struct mosquitto *mosq, int flag)
 {
     char buffer[80], buffer2[2];
     status.op_mode = flag;
@@ -480,57 +470,14 @@ void *local_control_thread(void *mosq)
     char out_ch5[] = {0x07, 0x40, 0x00};
     char ch_data[] = {0x00, 0x00, 0x00};
 
-    bcm2835_gpio_fsel(COMPIN, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_fsel(RELAYIT, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_fsel(RELAY1, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY1, RELAY_OFF);
-    bcm2835_gpio_fsel(RELAY2, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY2, RELAY_OFF);
-    bcm2835_gpio_fsel(RELAY3, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY3, RELAY_OFF);
-    bcm2835_gpio_fsel(RELAY4, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAY4, RELAY_OFF);
-    bcm2835_gpio_fsel(RELAYIT, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
-    bcm2835_gpio_fsel(BUZZER, BCM2835_GPIO_FSEL_OUTP);
-
-    /* Init PWM */
-    bcm2835_gpio_fsel(PWMPIN, BCM2835_GPIO_FSEL_ALT5);
-    sleeper.tv_sec = 0;
-    sleeper.tv_nsec = 110000L;
-    nanosleep(&sleeper, NULL);
-    bcm2835_pwm_set_clock(PWM_DIVIDER);
-    bcm2835_pwm_set_mode(PWM_CHANNEL, MARK_SPACE, ENABLE);
-    bcm2835_pwm_set_range(PWM_CHANNEL, RANGE);
-
-    /* Init Menu */
-    init_menu();
     buffer = (char **)malloc(sizeof(buffer) * 4);
     *(buffer + 0) = (char *)malloc(sizeof(*buffer) * 21);
     *(buffer + 1) = (char *)malloc(sizeof(*buffer) * 21);
     *(buffer + 2) = (char *)malloc(sizeof(*buffer) * 21);
     *(buffer + 3) = (char *)malloc(sizeof(*buffer) * 21);
 
-    /* Init LCD */
-    if(!bcm2835_i2c_begin()) pthread_exit(NULL);
-    bcm2835_i2c_setSlaveAddress(LCD_ADDRESS);
-    init_lcd();
-    sprintf(*(buffer + 0), "********************");
-    sprintf(*(buffer + 1), "*  Forest          *");
-    sprintf(*(buffer + 2), "*         Breath   *");
-    sprintf(*(buffer + 3), "********************");
-    lcd_display(buffer);
-
-    if (!bcm2835_spi_begin())
-    {
-        printf("bcm2835_spi_begin failed. Are you running as root??\n");
-        pthread_exit(NULL);
-    }
-    bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);
-    bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);
-    bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_65536);
-    bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
-    bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, LOW);
+    /* Machine should not start by default */
+    machine_switch(mosq, OFF, 0);
 
     sleeper.tv_sec = 0;
     sleeper.tv_nsec = 10000000L; /* 10ms */
@@ -830,10 +777,6 @@ void *local_control_thread(void *mosq)
                             ion_switch(mosq, OFF);
                         }
                         break;
-                    case 33:
-                        mode = MODE_HYBRID;
-                        hybrid_mode_switch(mosq, ON);
-                        break;
                     case 41:
                         /* Local, Remote */
                         remote = OFF;
@@ -1055,31 +998,6 @@ void *status_publish_thread(void *mosq)
     free(buffer2);
 }
 
-void init_status()
-{
-    status.LED = 0;
-    status.machine = 0;
-    status.EP = 0;
-    status.UV = 0;
-    status.ozone = 0;
-    status.ion = 0;
-    status.fan = 0;
-    status.buzzer = 0;
-    status.pwm_duty = 0;
-    status.op_mode = 0;
-}
-
-void init_sensor()
-{
-    _sensor.humidity = 0;
-    _sensor.temperature = 0;
-    _sensor.prd_current = 0;
-    _sensor.motion = 0;
-    _sensor.PM25 = 0;
-    _sensor.fan_current = 0;
-    _sensor.UV = 0;
-    _sensor.ozone = 0;
-}
 
 void *sensor_publish_thread(void *mosq)
 {
@@ -1092,8 +1010,6 @@ void *sensor_publish_thread(void *mosq)
     int fd;
     buffer = (char *)malloc(sizeof(buffer) * 80);
     buffer2 = (char *)malloc(sizeof(buffer2) * 80);
-    init_status();
-    init_sensor();
 
     if((fd = open(portname, O_RDONLY)) < 0)
     {
@@ -1124,62 +1040,138 @@ void *sensor_publish_thread(void *mosq)
         if(strcmp(sensor, "humidity") == 0)
         {
             _sensor.humidity = strtof(value, NULL);
-            sprintf(buffer2, "XYCS/%s/sensor/humidity", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "temperature") == 0)
         {
             _sensor.temperature = strtof(value, NULL);
-            sprintf(buffer2, "XYCS/%s/sensor/temperature", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "prd_current") == 0)
         {
             _sensor.prd_current = strtof(value, NULL);
-            sprintf(buffer2, "XYCS/%s/sensor/prd_current", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "motion") == 0)
         {
             _sensor.prd_current = strtoint(value);
-            sprintf(buffer2, "XYCS/%s/sensor/motion", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "fan_current") == 0)
         {
             _sensor.fan_current = strtof(value, NULL);
-            sprintf(buffer2, "XYCS/%s/sensor/fan_current", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "PM25") == 0)
         {
             _sensor.PM25 = strtof(value, NULL);
-            sprintf(buffer2, "XYCS/%s/sensor/PM25", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "UV") == 0)
         {
             _sensor.UV = strtoint(value);
-            sprintf(buffer2, "XYCS/%s/sensor/UV", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
         else if(strcmp(sensor, "ozone") == 0)
         {
             _sensor.ozone = strtof(value, NULL);
-            sprintf(buffer2, "XYCS/%s/sensor/ozone", SN);
+            sprintf(buffer2, "XYCS/%s/sensor/%s", SN, sensor);
             mosquitto_publish(mosq, NULL, buffer2, strlen(value), value, 0,
                     false);
         }
     }
     free(buffer);
     pthread_exit(NULL);
+}
+
+void init_status()
+{
+    status.LED = 0;
+    status.machine = 0;
+    status.EP = 0;
+    status.UV = 0;
+    status.ozone = 0;
+    status.ion = 0;
+    status.fan = 0;
+    status.buzzer = 0;
+    status.pwm_duty = 0;
+    status.op_mode = 0;
+}
+
+void init_sensor()
+{
+    _sensor.humidity = 0;
+    _sensor.temperature = 0;
+    _sensor.prd_current = 0;
+    _sensor.motion = 0;
+    _sensor.PM25 = 0;
+    _sensor.fan_current = 0;
+    _sensor.UV = 0;
+    _sensor.ozone = 0;
+}
+
+void init()
+{
+    struct timespec sleeper;
+    init_status();
+    init_sensor();
+    bcm2835_init();
+    bcm2835_gpio_fsel(COMPIN, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(COMPIN, 1);
+    bcm2835_gpio_fsel(COMPIN, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_fsel(RELAYIT, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_fsel(RELAY1, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(RELAY1, RELAY_OFF);
+    bcm2835_gpio_fsel(RELAY2, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(RELAY2, RELAY_OFF);
+    bcm2835_gpio_fsel(RELAY3, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(RELAY3, RELAY_OFF);
+    bcm2835_gpio_fsel(RELAY4, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(RELAY4, RELAY_OFF);
+    bcm2835_gpio_fsel(RELAYIT, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
+    bcm2835_gpio_fsel(BUZZER, BCM2835_GPIO_FSEL_OUTP);
+
+    /* Init PWM */
+    bcm2835_gpio_fsel(PWMPIN, BCM2835_GPIO_FSEL_ALT5);
+    sleeper.tv_sec = 0;
+    sleeper.tv_nsec = 110000L;
+    nanosleep(&sleeper, NULL);
+    bcm2835_pwm_set_clock(PWM_DIVIDER);
+    bcm2835_pwm_set_mode(PWM_CHANNEL, MARK_SPACE, ENABLE);
+    bcm2835_pwm_set_range(PWM_CHANNEL, RANGE);
+
+    /* Init Menu */
+    init_menu();
+
+    /* Init LCD */
+    bcm2835_i2c_begin();
+    bcm2835_i2c_setSlaveAddress(LCD_ADDRESS);
+    init_lcd();
+   
+    /* Init SPI */
+    bcm2835_spi_begin();
+    bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);
+    bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);
+    bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_65536);
+    bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
+    bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, LOW);
+
+    mosquitto_lib_init();
 }
 
 void signal_handler(int signum)
@@ -1191,6 +1183,7 @@ void signal_handler(int signum)
     bcm2835_gpio_write(RELAY4, RELAY_OFF);
     bcm2835_gpio_write(RELAYIT, RELAYIT_OFF);
     bcm2835_close();
+    mosquitto_lib_cleanup();
     exit(0);
 }
 
@@ -1205,10 +1198,8 @@ int main(int argc, char *argv[])
     signal(SIGKILL, signal_handler);
     signal(SIGSTOP, signal_handler);
 
-    bcm2835_init();
-    bcm2835_gpio_fsel(COMPIN, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(COMPIN, 1);
-    mosquitto_lib_init();
+    init();
+
     mosq = mosquitto_new(NULL, 1, NULL); /* 1 means clean session. */
     if(!mosq){
         fprintf(stderr, "Error: Out of memory.\n");
@@ -1229,6 +1220,5 @@ int main(int argc, char *argv[])
     pthread_join(id_remote_ctrl, NULL);
 
     mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();
     return 0;
 }

@@ -1,3 +1,9 @@
+#include <stdint.h>
+#include <bcm2835.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+
 #include "lcd.h"
 
 void lcd_cmd(uint8_t cmd)
@@ -115,18 +121,14 @@ void lcd_clr()
     lcd_cmd(0x01);
     nanosleep(&sleeper, NULL);
     */
-    char **buffer;
-    buffer = (char **)malloc(sizeof(buffer) * 4);
-    *(buffer + 0) = (char *)malloc(sizeof(*buffer) * 21);
-    *(buffer + 1) = (char *)malloc(sizeof(*buffer) * 21);
-    *(buffer + 2) = (char *)malloc(sizeof(*buffer) * 21);
-    *(buffer + 3) = (char *)malloc(sizeof(*buffer) * 21);
-
-    sprintf(*(buffer + 0), "                    ");
-    sprintf(*(buffer + 1), "                    ");
-    sprintf(*(buffer + 2), "                    ");
-    sprintf(*(buffer + 3), "                    ");
-    lcd_display(buffer);
+    mv_to_line(0);
+    lcd_str("                    ");
+    mv_to_line(1);
+    lcd_str("                    ");
+    mv_to_line(2);
+    lcd_str("                    ");
+    mv_to_line(3);
+    lcd_str("                    ");
 }
 
 void init_lcd()

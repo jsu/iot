@@ -1,4 +1,6 @@
-#include <stdint.h>
+#ifndef __MENU_H_
+#define __MENU_H_
+
 struct Node
 {
 	char *name;
@@ -17,3 +19,5 @@ struct Node *menu_e(); /* Enter */
 struct Node *menu_b(); /* Exit (Back) */
 struct Node *current_menu_node();
 void reset_current_menu_node();
+
+#endif

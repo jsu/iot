@@ -1,8 +1,5 @@
-#include <stdint.h>
-#include <bcm2835.h>
-#include <stdio.h>
-#include <time.h>
-#include <stdlib.h>
+#ifndef __LCD_H__
+#define __LCD_H__
 
 #define LCD_ADDRESS 0x27
 
@@ -14,3 +11,5 @@ void lcd_display(char **lines);
 void mv_to(int x, int y);
 void mv_to_line(int line);
 void init_lcd();
+
+#endif
