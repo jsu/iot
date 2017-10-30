@@ -62,6 +62,9 @@ struct status{
     int buzzer;
     int pwm_duty;
     int op_mode;
+    int comfort_mode;
+    int uv_mode;
+    int o3_mode;
 }status;
 
 struct _sensor{
@@ -206,7 +209,7 @@ void comfort_mode_switch(struct mosquitto *mosq, int flag)
 {
     char buffer[80], buffer2[2];
     status.op_mode = flag;
-    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer2, "%d", status.comfort_mode);
     sprintf(buffer, "XYCS/%s/status/comfort_mode", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
@@ -216,7 +219,7 @@ void uv_mode_switch(struct mosquitto *mosq, int flag)
 {
     char buffer[80], buffer2[2];
     status.op_mode = flag;
-    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer2, "%d", status.uv_mode);
     sprintf(buffer, "XYCS/%s/status/UV_mode", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
@@ -226,7 +229,7 @@ void o3_mode_switch(struct mosquitto *mosq, int flag)
 {
     char buffer[80], buffer2[2];
     status.op_mode = flag;
-    sprintf(buffer2, "%d", status.op_mode);
+    sprintf(buffer2, "%d", status.o3_mode);
     sprintf(buffer, "XYCS/%s/status/comfort_mode", SN);
     mosquitto_publish(mosq, NULL, buffer, strlen(buffer2),
             buffer2, 0, false);
@@ -1110,6 +1113,9 @@ void init_status()
     status.buzzer = 0;
     status.pwm_duty = 0;
     status.op_mode = 0;
+    status.comfort_mode = 0;
+    status.uv_mode = 0;
+    status.o3_mode = 0;
 }
 
 void init_sensor()
