@@ -1,9 +1,9 @@
 #include <stdint.h>
-#include <bcm2835.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 
+#include "bcm2835.h"
 #include "lcd.h"
 
 void lcd_cmd(uint8_t cmd)
