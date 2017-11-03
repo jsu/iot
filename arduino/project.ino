@@ -3,11 +3,11 @@
 
 #define PIR_PIN 8
 #define LED_PIN 13
-#define ACS712_PRD_PIN 7
-#define ACS712_FAN_PIN 1
-#define PR_PIN 3
+#define ACS712_PRD_PIN A7
+#define ACS712_FAN_PIN A1
+#define PR_PIN A3
 #define PR_MIN 100
-#define OZONE_PIN 5
+#define OZONE_PIN A5
 #define PM25_SRX 7
 #define PM25_STX 6
 #define DHTPIN 11
@@ -17,16 +17,15 @@ SoftwareSerial PMSerial(PM25_SRX, PM25_STX); /* (RX, TX) */
 void call_acs712_fan()
 {
   char buffer[32];
-  int i, ivalue;
+  int counter = 0, ivalue;
   float voltage = 0;
-
-  for(i = 0; i < 1500; i++)
+  uint32_t start_time = millis();
+  while((millis() - start_time) < 1000)
   {
-    voltage += analogRead(ACS712_FAN_PIN) * 0.0049; /* 5 / 1024 = 0.0048828125 */
-    delay(1);
+    voltage += analogRead(ACS712_FAN_PIN) * 0.0049;
+    counter++;
   }
-  voltage /= 1500.0;
-  ivalue = int((voltage - 2.5) / 0.185); /* avg voltage to current */
+  voltage /= counter;
   Serial.print("fan_current,");
   Serial.print((voltage - 2.5) / 0.185);
   Serial.print("\n");
@@ -34,19 +33,28 @@ void call_acs712_fan()
 
 void call_acs712_prd()
 {
-  char buffer[32];
-  int i, ivalue;
+  int read_value;
+  int max_value = 0;
+  int min_value = 1024;
+  int mVperAmp = 185;
   float voltage = 0;
-
-  for(i = 0; i < 1500; i++)
+  float VRMS = 0;
+  float AmpsRMS = 0;
+  uint32_t start_time = millis();
+  while((millis() - start_time) < 1000)
   {
-    voltage += analogRead(ACS712_PRD_PIN) * 0.0049; /* 5 / 1024 = 0.0048828125 */
-    delay(1);
+    read_value = analogRead(ACS712_PRD_PIN);
+    if(read_value > max_value)
+      max_value = read_value;
+    if(read_value < min_value)
+      min_value = read_value;
   }
-  voltage /= 1500.0;
-  ivalue = int((voltage - 2.5) / 0.185); /* avg voltage to current */
+
+  voltage = ((max_value - min_value) * 5.0) / 1024;
+  VRMS = (voltage / 2.0) * 0.707;
+  AmpsRMS = (VRMS * 1000) / mVperAmp;
   Serial.print("prd_current,");
-  Serial.print((voltage - 2.5) / 0.185);
+  Serial.print(AmpsRMS - 0.3);
   Serial.print("\n");
 }
 
@@ -80,25 +88,29 @@ void call_PR()
 
 void call_ozone()
 {
-  int i;
+  int counter;
   float ozone, voltage, ppb, ozone_min = 100.0;
-
-  for(i = 0; i < 500; i++)
+  uint32_t start_time = millis();
+  
+  while((millis() - start_time) < 1000)
   {
     ozone += analogRead(OZONE_PIN);
-    delay(3);  
+    counter++;
   }
 
-  ozone /= 500.0;
-  voltage = ozone / 1024.0 * 5.0;
+  ozone /= counter;
+  voltage = ozone / 1024.0 * 5;
 
-  if(voltage > 1 && voltage <= 2.7)
-    ppb = (voltage - 1.7) * 140 + 20;
-  else if(voltage > 2.7 && voltage <= 3.8)
-    ppb = (voltage - 2.7) * 764 + 160;
+  if(voltage <= 2.5 && voltage >= 1.7)
+    ppb = (2.5 - voltage) * 1000 + 200;
+  else if(voltage < 4)
+    ppb = (4 - voltage) * 133;  
   else
-    return;
+    ppb = 0;
 
+  Serial.print("Voltage,");
+  Serial.print(voltage);
+  Serial.print("\n");
   Serial.print("ozone,");
   Serial.print(ppb);
   Serial.print("\n");
@@ -144,7 +156,7 @@ void setup()
 
 void loop()
 {
-  /* First 1.5 seconds. */
+  /* First 1 seconds. */
   call_ozone();
   call_PIR();
   call_PM25();
@@ -153,7 +165,7 @@ void loop()
   /* Second 1.5 seconds. */
   call_acs712_fan();
   call_PIR();
-  /* Third 1.5 seconds. */
+  /* Third 1 seconds. */
   call_acs712_prd();
   call_PIR();
 }
