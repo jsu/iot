@@ -174,8 +174,6 @@ body, html {
                                 <select name="machine" id="machine">
                                     <option  value="0">停機</option>
                                     <option  value="1">啟動</option>
-                                    <option  value="2">遠端</option>
-                                    <option  value="3">本地</option>
                                 </select>
                             </h3>
                             <!--p id="machine_status" color:red > N/A </p-->
@@ -225,8 +223,8 @@ body, html {
                             <h3 class="content-subhead w3-center w3-text-black">
                                 靜電除塵板
                                 <select name="EP"  id="EP">
-                                    <option  value="1">啟動</option>
                                     <option  value="0">停機</option>
+                                    <option  value="1">啟動</option>
                                 </select>
                             </h3>
                         </div>
@@ -237,17 +235,13 @@ body, html {
                     <div class="w3-col l3 m6 w3-margin-bottom">
                         <div class="w3-display-container">
                             <div id="machine_status" class="w3-display-topright w3-black w3-padding"></div>
-                            <div id="uv_status" class="w3-display-topright w3-black w3-padding">紫外線</div>
+                            <div id="UV_status" class="w3-display-topright w3-black w3-padding">紫外線</div>
                             <img id="uvImage" src="image/uv_off.png" alt="House" style="width:100%">
                             <h3 class="content-subhead w3-center w3-text-black">
                                 紫外線
                                 <select name="s-UV"  id="s-UV">
                                     <option  value="0">停機</option>
                                     <option  value="1">啟動</option>
-                                    <option  value="10">運行10min</option>
-                                    <option  value="15">運行15min</option>
-                                    <option  value="30">運行30min</option>
-                                    <option  value="60">運行60min</option>
                                 </select>
                             </h3>
                         </div>
@@ -262,10 +256,6 @@ body, html {
                                 <select name="s-ozone"  id="s-ozone">
                                     <option  value="0">停機</option>
                                     <option  value="1">啟動</option>
-                                    <option  value="5">運行5min</option>
-                                    <option  value="10">運行10min</option>
-                                    <option  value="15">運行15min</option>
-                                    <option  value="30">運行30min</option>
                                 </select>
                             </h3> 
 
@@ -306,27 +296,101 @@ body, html {
 
         <script>
 var SN = "1031"; // 01: TEST MACHINE NO  product  SN "1031"
-var URI = "/XYCS/" + SN + "/command/";
+var PREFIX = "XYCS";
+var COMMAND_URI = "/" + PREFIX + "/" + SN + "/command/";
+var SENSOR_URI = "/" + PREFIX + "/" + SN + "/sensor/";
+var STATUS_URI = "/" + PREFIX + "/" + SN + "/status/";
 
-$(function(){
+function get_sensor_data()
+{
+    $.get(SENSOR_URI+"temperature", function(v){
+        $("#temperature").text(v.data);
+    });
+    $.get(SENSOR_URI+"humidity", function(v){
+        $("#humidity").text(v.data);
+    });
+    $.get(SENSOR_URI+"motion", function(v){
+        $("#motion").text(v.data);
+    });
+    $.get(SENSOR_URI+"fan_current", function(v){
+        $("#fan_current").text(v.data);
+    });
+    $.get(SENSOR_URI+"UV", function(v){
+        $("#UV").text(v.data);
+    });
+    $.get(SENSOR_URI+"ozone", function(v){
+        $("#ozone").text(v.data);
+    });
+    $.get(SENSOR_URI+"prd_current", function(v){
+        $("#prd_current").text(v.data);
+    });
+    $.get(SENSOR_URI+"PM25", function(v){
+        $("#PM25").text(v.data);
+    });
+}
+
+function get_status_data()
+{
+    $.get(STATUS_URI+"machine", function(v){
+        status = v.data ? "運轉中" : "待機";
+        $("#machine_status").text(status);
+    });
+    $.get(STATUS_URI+"opmode", function(v){
+        switch(v.data)
+        {
+            case 0:
+                status = "手動模式";
+                break;
+            case 1:
+                status = "健康舒適";
+                break;
+            case 2:
+                status = "紫外線殺菌";
+                break;
+            case 3:
+                status = "臭氧殺菌";
+                break;
+        }
+        $("#opmode_status").text(status);
+    });
+    $.get(STATUS_URI+"pwm_duty", function(v){
+        status = v.data ? "風速" + v.data : "停止";
+        $("#fan_status").text(status);
+    });
+    $.get(STATUS_URI+"EP", function(v){
+        status = v.data ? "運轉中" : "停止";
+        $("#EP_status").text(status);
+    });
+    $.get(STATUS_URI+"UV", function(v){
+        status = v.data ? "運轉中" : "停止";
+        $("#UV_status").text(status);
+    });
+    $.get(STATUS_URI+"ozone", function(v){
+        status = v.data ? "運轉中" : "停止";
+        $("#ozone_status").text(status);
+    });
+    $.get(STATUS_URI+"ion", function(v){
+        status = v.data ? "運轉中" : "停止";
+        $("#ion_status").text(status);
+    });
+}
+
+$(document).ready(function(){
     var str="";
 
     $("#machine").change(function(){
         str=$("#machine").val();
         $('#machine_status').text=$("#machine").text();
+        $.post(COMMAND_URI+"machine", {"data": $("#machine").val()});
         switch($("#machine").val())
         {
             case "1":
                 $("#machine option[value='1']").attr("disabled","disabled");
                 $("#machine option[value='0']").removeAttr('disabled');
-                $.post(URI+"machine", {"data": 1}, function(data){
-                });
                 break;
             case "0":
                 $("#machine option[value='0']").attr("disabled","disabled");
                 $("#machine option[value='1']").removeAttr('disabled');
-                $.post(URI+"machine", {"data": 0}, function(data, status){
-                });
                 break; 
         }
     });
@@ -334,7 +398,7 @@ $(function(){
     $("#opmode").change(function(){
         str=$("#opmode").val();
         $('#opmode_status').text=$("#opmode").text();
-        $.post(URI+"opmode", {"data": $("#opmode").val()}, function(data, status){});
+        $.post(COMMAND_URI+"opmode", {"data": $("#opmode").val()});
         switch($("#opmode").val())
         {
             case "0":
@@ -360,17 +424,16 @@ $(function(){
     $("#fan").change(function() {
         $('#fan_status').text=$("#fan").text();
         if($("#fan").val() == 0)
-            $.post(URI+"fan", {"data": 0}, function(data, status){});
+            $.post(COMMAND_URI+"fan", {"data": 0});
         else 
-            $.post(URI+"fan", {"data": 1}, function(data, status){});
+            $.post(COMMAND_URI+"fan", {"data": 1});
         pwm_duty = Number($("#fan").val());
         if(pwm_duty > 0 && pwm_duty < 250)
             pwm_duty = 250;
-        $.post(URI+"pwm_duty", {"data": pwm_duty}, function(data, status){});
+        $.post(COMMAND_URI+"pwm_duty", {"data": pwm_duty});
         switch($("#fan").val())
         {
             case "0":
-                message = new Paho.MQTT.Message("0");
                 $("#fanImage").attr("src","image/fan_off.png");
                 break;
             case "1":
@@ -396,7 +459,7 @@ $(function(){
 
     $("#EP").change(function(){
         $('#EP_status').text=$("#EP").text();
-        $.post(URI+"EP", {"data": $("#EP").val()}, function(data, status){});
+        $.post(COMMAND_URI+"EP", {"data": $("#EP").val()});
         switch($("#EP").val())
         {  
             case "1":
@@ -409,7 +472,7 @@ $(function(){
     });
 
     $("#s-UV").change(function() {
-        $.post(URI+"EP", {"data": $("#EP").val()}, function(data, status){});
+        $.post(COMMAND_URI+"UV", {"data": $("#s-UV").val()});
         switch($("#s-UV").val())
         {
             case "0":
@@ -420,64 +483,28 @@ $(function(){
                 $("#uv_status").text="啟動";
                 $("#uvImage").attr("src","image/uv_on.png");
                 break;
-/*
-            case "10":
-                $("#uv_status").text= "運行10min";
-                $("#uvImage").attr("src","image/uv_on10.png");
-                break;
-            case "15":
-                $("#uv_status").text= "運行15min";
-                $("#uvImage").attr("src","image/uv_on15.png");
-                break;
-            case "30":
-                $("#uv_status").text="運行30min";
-                $("#uvImage").attr("src","image/uv_on30.png");
-                break;
-            case "60":
-                $("#uv_status").text="運行60min";
-                $("#uvImage").attr("src","image/uv_on60.png");
-                break; 
-*/
-            default:
-                $("#uv_status").text="啟動";
-                $("#uvImage").attr("src","image/uv_on.png");
-                break;
         }
     }); 
 
     $("#s-ozone").change(function(){
         $('#ozone_status').text=$("#s-ozone").text();
+        $.post(COMMAND_URI+"ozone", {"data": $("#s-ozone").val()});
         switch($("#s-ozone").val())
         {
             case "0":
-                $("#ozone_status").text="運行60min";
+                $("#ozone_status").text="停止";
                 $("#ozoneImage").attr("src","image/ozone_off.png");
                 break;
             case "1":
                 $("#ozone_status").text="啟動";
                 $("#ozoneImage").attr("src","image/ozone_on.png");
                 break;
-            case "5":
-                $("#ozone_status").text="運行5min";
-                $("#ozoneImage").attr("src","image/ozone_on.png");
-                break;
-            case "10":
-                $("#ozone_status").text="運行10min";
-                $("#ozoneImage").attr("src","image/ozone_on.png");
-                break;
-            case "15":
-                $("#ozone_status").text="運行15min";
-                $("#ozoneImage").attr("src","image/ozone_on.png");
-                break;
-            case "30":
-                $("#ozone_status").text="運行30min";
-                $("#ozoneImage").attr("src","image/ozone_on.png");
-                break;   
         }
     });
 
     $("#ion").change(function(){
         $('#ion_status').text=$("#ion").text();
+        $.post(COMMAND_URI+"ion", {"data": $("#ion").val()});
         switch ($("#ion").val())
         {	
             case "1":
@@ -488,6 +515,9 @@ $(function(){
                 break;
         }
     });
+
+    setInterval(get_sensor_data, 1000);
+    setInterval(get_status_data, 3000);
 });
         </script>
     </body>
