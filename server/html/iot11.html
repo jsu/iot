@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A layout example that shows off a responsive product landing page.">
+    <title>IOT智慧空氣清淨機</title>
+    
+      <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css">
+	<link rel="stylesheet" href="css/layouts/marketing.css">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+    
+    <!--[if lte IE 8]>
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-old-ie-min.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
+    <!--<![endif]-->
+    
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css">
+    
+        <!--[if lte IE 8]>
+            <link rel="stylesheet" href="css/layouts/marketing-old-ie.css">
+        <![endif]-->
+        <!--[if gt IE 8]><!-->
+            <link rel="stylesheet" href="css/layouts/marketing.css">
+            <style type="text/css">
+            body,td,th {
+	font-family: "標楷體";
+	font-size: 24px;
+}
+            </style>
+        <!--<![endif]-->
+
+</head>
+
+
+<body>
+
+<div class="header">
+	
+    <div class="home-menu pure-menu pure-menu-horizontal pure-menu-fixed">
+        
+
+        <ul class="pure-menu-list">
+            <li class="pure-menu-item"><a href="iot11.html" class="pure-menu-link">狀態</a></li>
+            <li class="pure-menu-item"><a href="iot22.html" class="pure-menu-link">控制</a></li>
+            <li class="pure-menu-item"><a href="iot33.html" class="pure-menu-link">歷史</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="splash-container">
+    <div class="splash">
+    	<h1 class="splash-head">智慧空氣清淨機狀態</h1>
+        <p class="splash-subhead">
+            讓您在家就像高山一樣
+        </p>
+       
+  </div>
+</div>
+
+<div class="content-wrapper">
+<div class="content">
+        <h2 class="content-head is-center">目前裝置狀態</h2>
+
+        <div class="content-head is-center">
+            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+
+                <h3 class="content-subhead">
+                    <i class="fa fa-thermometer-three-quarters fa-5x" title="溫度"></i>
+                </h3>
+                <p id="temperature">
+                   N/A 
+                </p>
+            </div>
+            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+                <h3 class="content-subhead">
+                    <i class="fa fa-tint fa-5x" title="濕度"></i>
+                </h3>
+                <p id="humidity">
+                    N/A
+                </p>
+            </div>
+            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+                <h3 class="content-subhead">
+                    <i class="fa fa-male fa-5x" title="人體偵測"></i>
+                </h3>
+                <p id="motion">
+                    N/A
+                </p>
+            </div>
+
+            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+                
+                <p><img src = "image/fan_speed.png" height="166" width="166" title="風扇電流">
+               
+                </p>
+              
+                <p id="fan_current">
+                    N/A
+                </p>
+            </div>
+             <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+                <p> </p>
+                <h3 class="content-subhead">
+                   <i class="fa fa-sun-o fa-4x" title="紫外線"></i>
+                </h3>
+                <p id="UV">
+                    N/A
+                </p>
+            </div>
+
+            <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+                <img src="image/o3_large.png"height="166" width="166" title="臭氧" >
+              
+                <p id="ozone">
+                    N/A
+                </p>
+            </div>
+   
+   
+   <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+                <h3 class="content-subhead">
+                  <i class="fa fa-bolt fa-2x" title="設備電流"></i>
+              </h3>
+                <p id="prd_current">
+                    N/A
+                </p>
+        </div>
+          
+          
+          <div class="l-box pure-u-1 pure-u-md-1-2 pure-u-lg-1-4">
+              
+                 <h3 class="content-subhead">
+                   PM2.5
+                 </h3>
+                   
+                <p id="PM25">
+                    N/A
+                </p>
+            </div>
+ 
+        </div>    
+  </div>
+           <br></br>
+              <div class="footer l-box is-center">
+        Made by Team XYCS
+            </div>
+</div>
+<script type="text/javascript">
+var machine_sn = "01";
+function onConnect()
+{
+    client.subscribe("XYCS/" + machine_sn + "/#")
+}
+function onMessageArrived(message)
+{
+    var dest = "#" + message.destinationName.substring(
+        message.destinationName.lastIndexOf("/") + 1);
+    switch(dest)
+    {
+        case "#machine":
+            switch(message.payloadString)
+            {
+                case "1":
+                    $(dest).html("停機");
+                    break;
+                case "2":
+                    $(dest).html("急停");
+                    break;
+                case "3":
+                    $(dest).html("重置");
+                    break;
+                case "4":
+                    $(dest).html("加速");
+                    break;
+                case "5":
+                    $(dest).html("減速");
+                    break;
+                case "6":
+                default:
+                    $(dest).html("啟動");
+                    break;
+            }
+            break; 
+        case "#op_mode":
+            switch(message.payloadString)
+            {
+                case "1":
+                    $(dest).html("舒適");
+                    break;
+                case "2":
+                    $(dest).html("清潔殺菌");
+                    break;
+                case "0":
+                default:
+                    $(dest).html("手動");
+            }
+            break;
+        case "#EP":
+        case "#s-UV":
+        case "#s-ozone":
+        case "#ion":
+        case "#fan":
+        case "#buzzer":
+        case "#pwm_duty":
+            switch(message.payloadString)
+            {
+                case "1":
+                    $(dest).html("運轉中");
+                    break;
+                case "0":
+                default:
+                    $(dest).html("關閉");
+            }
+            break;
+        default:
+            $(dest).html(message.payloadString);
+    }
+}
+
+$(function(){
+    client = new Paho.MQTT.Client(
+        "iot.eclipse.org", 
+        Number(443),
+        "XYCS_" + parseInt(Math.random() * 100, 10) 
+    );
+    client.onMessageArrived = onMessageArrived;
+    client.connect({onSuccess: onConnect, useSSL: true});
+    /*
+    $("#machine-1").prop("disabled", true);
+    $("#machine-4").prop("disabled", true);
+    $("#machine-5").prop("disabled", true);
+    $("#machine-3").prop("disabled", true);
+    $("#machine-2").prop("disabled", true);
+    $("#machine-6").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#machine-1").removeAttr("disabled");
+        $("#machine-4").removeAttr("disabled");
+        $("#machine-5").removeAttr("disabled");
+        $("#machine-3").removeAttr("disabled");
+        $("#machine-2").removeAttr("disabled");
+        $("#machine-6").prop("disabled", true);
+        message = new Paho.MQTT.Message("6");
+        message.destinationName = "XYCS/01/command/machine";
+        client.send(message);
+    });
+    $("#machine-1").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#machine-1").prop("disabled", true);
+        $("#machine-4").prop("disabled", true);
+        $("#machine-5").prop("disabled", true);
+        $("#machine-3").prop("disabled", true);
+        $("#machine-2").prop("disabled", true);
+        $("#machine-6").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/machine";
+        client.send(message);
+    });
+	*/
+    $("#EP-stop").prop("disabled", true);
+    $("#EP-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#EP-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/EP";
+        client.send(message);
+    });
+    $("#EP-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#EP-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/EP";
+        client.send(message);
+    });
+    $("#s-UV-stop").prop("disabled", true);
+    $("#s-UV-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#s-UV-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/UV";
+        client.send(message);
+    });
+    $("#s-UV-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#s-UV-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/UV";
+        client.send(message);
+    });
+    $("#s-ozone-stop").prop("disabled", true);
+    $("#s-ozone-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#s-ozone-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/ozone";
+        client.send(message);
+    });
+    $("#s-ozone-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#s-ozone-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/ozone";
+        client.send(message);
+    });
+    $("#ion-stop").prop("disabled", true);
+    $("#ion-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#ion-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/ion";
+        client.send(message);
+    });
+    $("#ion-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#ion-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/ion";
+        client.send(message);
+    });
+    $("#fan-stop").prop("disabled", true);
+    $("#fan-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#fan-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/fan";
+        client.send(message);
+    });
+    $("#fan-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#fan-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/fan";
+        client.send(message);
+    });
+    $("#buzzer-stop").prop("disabled", true);
+    $("#buzzer-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#buzzer-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/buzzer";
+        client.send(message);
+    });
+    $("#buzzer-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#buzzer-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/buzzer";
+        client.send(message);
+    });
+    $("#pwm_duty-stop").prop("disabled", true);
+    $("#pwm_duty-sop").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#pwm_duty-start").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/pwm_duty";
+        client.send(message);
+    });
+    $("#pwm_duty-start").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#pwm_duty-stop").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/pwm_duty";
+        client.send(message);
+    });
+    $("#op_mode-0").prop("disabled", true);
+    $("#op_mode-0").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#op_mode-1").removeAttr("disabled");
+        $("#op_mode-2").removeAttr("disabled");
+        message = new Paho.MQTT.Message("0");
+        message.destinationName = "XYCS/01/command/op_mode";
+        client.send(message);
+    });
+    $("#op_mode-1").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#op_mode-0").removeAttr("disabled");
+        $("#op_mode-2").removeAttr("disabled");
+        message = new Paho.MQTT.Message("1");
+        message.destinationName = "XYCS/01/command/op_mode";
+        client.send(message);
+    });
+    $("#op_mode-2").on("click", function(){
+        $(this).prop("disabled", true);
+        $("#op_mode-0").removeAttr("disabled");
+        $("#op_mode-1").removeAttr("disabled");
+        message = new Paho.MQTT.Message("2");
+        message.destinationName = "XYCS/01/command/op_mode";
+        client.send(message);
+    });
+});
+</script>
+</body>
+</html>

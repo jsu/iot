@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="A layout example that shows off a responsive product landing page.">
+        <title>IOT智慧空氣清淨機控制頁</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-" crossorigin="anonymous">
+
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css">
+        <link rel="stylesheet" href="css/layouts/marketing.css">
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css">
+        <link rel="stylesheet" href="css/layouts/marketing.css">
+        <style type="text/css">
+body,td,th,h3 {
+    font-family: "標楷體";
+    font-size: 24px;
+}
+
+body, html {
+    height: 100%;
+    line-height: 1.0;
+}
+/* Full height image header */
+.bgimg-1 {
+    background-position: center;
+    background-size: cover;
+    background-image: url("image/restroom.png");
+    min-height: 100%;
+}
+.w3-bar .w3-button {
+    padding: 16px;
+}
+.w3-container{
+    background-image: linear-gradient(to right, #74ebd5 0%, #9face6 100%);
+}
+        </style>
+    </head>
+    <body>
+
+        <!-- Navbar (sit on top) -->
+        <div class="w3-top w3-right">
+            <div class="w3-bar  w3-card" id="myNavbar">
+                <a href="#home" class="w3-bar-item w3-button w3-wide w3-indigo ">首頁</a>
+                <!-- Right-sided navbar links -->
+                <div class="w3-right w3-hide-small w3-blue ">
+                    <a href="#about" class="w3-bar-item w3-button"><i class="fa fa-user"></i>狀態</a>
+                    <a href="#team" class="w3-bar-item w3-button"><i class="fa fa-th"></i>控制</a>
+                    <a href="#work" class="w3-bar-item w3-button"><i class="fa fa-envelope"></i>歷史</a>
+
+                </div>
+                <!-- Hide right-floated links on small screens and replace them with a menu icon -->
+
+                <a href="javascript:void(0)" class="w3-bar-item w3-button w3-right w3-hide-medium w3-hide-medium" onclick="w3_open()">
+                    <i class="fa fa-bars"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Sidebar on small screens when clicking the menu icon -->
+        <nav class="w3-sidebar w3-bar-block w3-black w3-card w3-animate-left w3-hide-medium w3-hide-large" style="display:none" id="mySidebar">
+            <a href="javascript:void(0)" onclick="w3_close()" class="w3-bar-item w3-button w3-large w3-padding-16">Close ×</a>
+            <a href="#about" onclick="w3_close()" class="w3-bar-item w3-button">ABOUT</a>
+            <a href="#team" onclick="w3_close()" class="w3-bar-item w3-button">TEAM</a>
+            <a href="#work" onclick="w3_close()" class="w3-bar-item w3-button">WORK</a>
+
+        </nav>
+
+        <!-- Header with full-height image -->
+        <header class="bgimg-1 w3-display-container w3-grayscale-min" id="home">
+            <div class="w3-display-right w3-text-black" style="padding:48px">
+                <span class="w3-jumbo w3-hide-small">智慧空氣清淨機</span><br>
+                <span class="w3-xxlarge w3-hide-large w3-hide-medium">智慧空氣清淨機</span><br>
+                <span class="w3-xlarge">讓您在家在外都能控制它</span>
+                <p><a href="#about" class="w3-button w3-white w3-padding-large w3-xlarge w3-margin-top w3-opacity w3-hover-opacity-off">看看今天的狀態如何吧</a></p>
+            </div> 
+            <div class="w3-display-bottomleft w3-text-grey w3-large" style="padding:24px 48px">
+                <i class="fa fa-facebook-official w3-hover-opacity"></i>
+                <i class="fa fa-instagram w3-hover-opacity"></i>
+                <i class="fa fa-snapchat w3-hover-opacity"></i>
+                <i class="fa fa-pinterest-p w3-hover-opacity"></i>
+                <i class="fa fa-twitter w3-hover-opacity"></i>
+                <i class="fa fa-linkedin w3-hover-opacity"></i>
+            </div>
+        </header>
+
+        <!-- About Section -->
+        <div class="w3-container" style="padding:64px 16px" id="about">
+            <h3 class="w3-center w3-xxlarge w3-pale-blue" >目前狀態</h3>
+            <div class="w3-row-padding w3-grayscale">
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/thermometer.png" alt="溫度" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black ">溫度 &emsp;</div>
+                        <div id="temperature" class="w3-padding w3-display-right w3-xxlarge w3-text-black"> </div>
+                    </div>
+                </div>
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/humidity.png" alt="濕度" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">濕度 &emsp;</div>
+                        <div id="humidity" class="w3-padding w3-display-right w3-xxlarge w3-text-black"> </div>
+
+                    </div>
+                </div>
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/human_detected.png" alt="人體偵測" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">人體偵測 &emsp;</div>
+                        <div id="motion" class="w3-padding w3-display-right w3-xxlarge w3-text-black"> </div>
+                    </div>
+                </div>
+
+
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/current_amp.png" alt="風扇電流" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">風扇電流 &emsp;</div>
+                        <div id="fan_current" class="w3-opacity w3-display-right w3-xxlarge w3-text-black"> </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-row-padding w3-grayscale">
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/uv_light.png" alt="紫外線" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">紫外線&emsp;</div>
+                        <div id="UV" class="w3-opacity w3-display-right w3-xxlarge w3-text-black"> </div>
+                    </div>
+                </div>
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/ozone500_333.png" alt="臭氧" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">臭氧 &emsp;</div>
+                        <div id="ozone" class="w3-opacity w3-display-right w3-xxlarge w3-text-black"> </div>
+                    </div>
+                </div>
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/current_amp_device.png" alt="設備電流" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">設備電流 &emsp;</div>
+                        <div  id="prd_current" class="w3-opacity w3-display-right w3-xxlarge w3-text-black"> </div>
+                    </div>
+                </div>
+                <div class="w3-col l3 m6 w3-margin-bottom">
+                    <div class="w3-display-container">
+                        <img src="image/PM25.png" alt="PM2.5" style="width:100%">
+                        <div class="w3-padding w3-display-topright w3-xxlarge w3-text-black">PM2.5 &emsp;</div>
+                        <div id="PM25" class="w3-opacity w3-display-right w3-xxlarge w3-text-black"> </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Team Section -->
+            <div class="w3-container" style="padding:64px 16px" id="team">
+                <h3 class="w3-center w3-xxlarge w3-pale-green">裝置控制</h3>
+                <div class="w3-row-padding">
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="machine_status" class="w3-display-topright w3-black w3-padding">設備</div>
+                            <img src="image/machine.png" alt="machine" style="width:100%">
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                設備
+                                <select name="machine" id="machine">
+                                    <option  value="0">停機</option>
+                                    <option  value="1">啟動</option>
+                                    <option  value="2">遠端</option>
+                                    <option  value="3">本地</option>
+                                </select>
+                            </h3>
+                            <!--p id="machine_status" color:red > N/A </p-->
+                        </div>
+                    </div>
+
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="opmode_status" class="w3-display-topright w3-black w3-padding">情境</div>
+                            <img  id="opImage" src="image/stop.png" alt="House" style="width:100%">
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                情境
+                                <select name="opmode"  id="opmode">
+                                    <option  value="0">停止</option>
+                                    <option  value="1">健康舒適</option>
+                                    <option  value="2">紫外線殺菌</option>
+                                    <option  value="3">臭氧殺菌</option>
+                                </select>
+                            </h3>
+
+                        </div>
+                    </div>
+
+
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="fan_status" class="w3-display-topright w3-black w3-padding">風扇</div>
+                            <img id="fanImage" src="image/fan_off.png" alt="Fan" style="width:100%">
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                風扇
+                                <select name="fan" id="fan">
+                                    <option  value="0" >風扇停止</option>
+                                    <option  value="1" >風扇啟動</option>
+                                    <option  value="250" >速度250</option>
+                                    <option  value="400" >速度400</option>
+                                    <option  value="550" >速度550</option>
+                                    <option  value="700" >速度700</option>
+                                    <option  value="850" >速度850</option>
+                                </select>
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="EP_status" class="w3-display-topright w3-black w3-padding">靜電除塵板</div>
+                            <img  id="epImage" src="image/EP_off.png" alt="靜電除塵板" style="width:100%">
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                靜電除塵板
+                                <select name="EP"  id="EP">
+                                    <option  value="1">啟動</option>
+                                    <option  value="0">停機</option>
+                                </select>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w3-row-padding">
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="machine_status" class="w3-display-topright w3-black w3-padding"></div>
+                            <div id="uv_status" class="w3-display-topright w3-black w3-padding">紫外線</div>
+                            <img id="uvImage" src="image/uv_off.png" alt="House" style="width:100%">
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                紫外線
+                                <select name="s-UV"  id="s-UV">
+                                    <option  value="0">停機</option>
+                                    <option  value="1">啟動</option>
+                                    <option  value="10">運行10min</option>
+                                    <option  value="15">運行15min</option>
+                                    <option  value="30">運行30min</option>
+                                    <option  value="60">運行60min</option>
+                                </select>
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="ozone_status" class="w3-display-topright w3-black w3-padding">臭氧</div>
+                            <img id="ozoneImage" src="image/ozone_off.png" alt="House" style="width:100%">
+
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                臭氧O3
+                                <select name="s-ozone"  id="s-ozone">
+                                    <option  value="0">停機</option>
+                                    <option  value="1">啟動</option>
+                                    <option  value="5">運行5min</option>
+                                    <option  value="10">運行10min</option>
+                                    <option  value="15">運行15min</option>
+                                    <option  value="30">運行30min</option>
+                                </select>
+                            </h3> 
+
+                        </div>
+                    </div>
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div id="ion_status" class="w3-display-topright w3-black w3-padding">負離子</div>
+                            <img id="ionImage" src="image/ion_off.png" alt="House" style="width:100%">
+                            <h3 class="content-subhead w3-center w3-text-black">
+                                負離子
+                                <select name="ion"  id="ion">
+                                    <option  value="0">停機</option>
+                                    <option  value="1">啟動</option>
+                                </select>
+                            </h3> 
+
+                        </div>
+                    </div>
+                    <div class="w3-col l3 m6 w3-margin-bottom">
+                        <div class="w3-display-container">
+                            <div class="w3-display-topright w3-black w3-padding">環保署</div>
+                            <a href="https://taqm.epa.gov.tw/taqm/tw/default.aspx"><img src="image/airquality.png" alt="Air" style="width:100%"></a>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Contact Section -->
+            </div>
+        </div>
+        <!-- Footer -->
+        <footer class="w3-center w3-black w3-padding-8">
+            <a href="#home" class="w3-button w3-light-grey"><i class="fa fa-arrow-up w3-margin-right"></i>To the top</a>
+            <div class="is-center">
+                Made by Team XYCS
+            </div>
+        </footer>
+
+        <script>
+var SN = "1031"; // 01: TEST MACHINE NO  product  SN "1031"
+var URI = "/XYCS/" + SN + "/command/";
+
+$(function(){
+    var str="";
+
+    $("#machine").change(function(){
+        str=$("#machine").val();
+        $('#machine_status').text=$("#machine").text();
+        switch($("#machine").val())
+        {
+            case "1":
+                $("#machine option[value='1']").attr("disabled","disabled");
+                $("#machine option[value='0']").removeAttr('disabled');
+                $.post(URI+"machine", {"data": 1}, function(data){
+                });
+                break;
+            case "0":
+                $("#machine option[value='0']").attr("disabled","disabled");
+                $("#machine option[value='1']").removeAttr('disabled');
+                $.post(URI+"machine", {"data": 0}, function(data, status){
+                });
+                break; 
+        }
+    });
+
+    $("#opmode").change(function(){
+        str=$("#opmode").val();
+        $('#opmode_status').text=$("#opmode").text();
+        $.post(URI+"opmode", {"data": $("#opmode").val()}, function(data, status){});
+        switch($("#opmode").val())
+        {
+            case "0":
+                $("#opImage").attr("src","image/stop.png");
+                manualoperationEnabled();
+                break; 
+            case "1":
+                $("#opImage").attr("src","image/comfort1.png");
+                manualoperationDisabled();
+                break; 
+            case "2":
+                $("#opImage").attr("src","image/comfort2.png");
+                manualoperationDisabled();
+                break;
+            case "3":
+                $("#opImage").attr("src","image/comfort500_333.png");
+                manualoperationDisabled();
+                break;
+        }
+    });
+
+    //  fan 風扇 
+    $("#fan").change(function() {
+        $('#fan_status').text=$("#fan").text();
+        if($("#fan").val() == 0)
+            $.post(URI+"fan", {"data": 0}, function(data, status){});
+        else 
+            $.post(URI+"fan", {"data": 1}, function(data, status){});
+        pwm_duty = Number($("#fan").val());
+        if(pwm_duty > 0 && pwm_duty < 250)
+            pwm_duty = 250;
+        $.post(URI+"pwm_duty", {"data": pwm_duty}, function(data, status){});
+        switch($("#fan").val())
+        {
+            case "0":
+                message = new Paho.MQTT.Message("0");
+                $("#fanImage").attr("src","image/fan_off.png");
+                break;
+            case "1":
+                $("#fanImage").attr("src","image/fan_on250.png");
+                break;
+            case "250":
+                $("#fanImage").attr("src","image/fan_on250.png");
+                break;
+            case "400":
+                $("#fanImage").attr("src","image/fan_on400.png");
+                break;
+            case "550":
+                $("#fanImage").attr("src","image/fan_on550.png");
+                break;
+            case "700":
+                $("#fanImage").attr("src","image/fan_on700.png");
+                break;
+            case "850":
+                $("#fanImage").attr("src","image/fan_on850.png");
+                break;   
+        }
+    });
+
+    $("#EP").change(function(){
+        $('#EP_status').text=$("#EP").text();
+        $.post(URI+"EP", {"data": $("#EP").val()}, function(data, status){});
+        switch($("#EP").val())
+        {  
+            case "1":
+                $("#epImage").attr("src","image/ep_on.png");
+                break;
+            case "0":
+                $("#epImage").attr("src","image/ep_off.png");
+                break;
+        }
+    });
+
+    $("#s-UV").change(function() {
+        $.post(URI+"EP", {"data": $("#EP").val()}, function(data, status){});
+        switch($("#s-UV").val())
+        {
+            case "0":
+                $("#uv_status").text="停機" ; 
+                $("#uvImage").attr("src","image/uv_off.png");
+                break;
+            case "1":
+                $("#uv_status").text="啟動";
+                $("#uvImage").attr("src","image/uv_on.png");
+                break;
+/*
+            case "10":
+                $("#uv_status").text= "運行10min";
+                $("#uvImage").attr("src","image/uv_on10.png");
+                break;
+            case "15":
+                $("#uv_status").text= "運行15min";
+                $("#uvImage").attr("src","image/uv_on15.png");
+                break;
+            case "30":
+                $("#uv_status").text="運行30min";
+                $("#uvImage").attr("src","image/uv_on30.png");
+                break;
+            case "60":
+                $("#uv_status").text="運行60min";
+                $("#uvImage").attr("src","image/uv_on60.png");
+                break; 
+*/
+            default:
+                $("#uv_status").text="啟動";
+                $("#uvImage").attr("src","image/uv_on.png");
+                break;
+        }
+    }); 
+
+    $("#s-ozone").change(function(){
+        $('#ozone_status').text=$("#s-ozone").text();
+        switch($("#s-ozone").val())
+        {
+            case "0":
+                $("#ozone_status").text="運行60min";
+                $("#ozoneImage").attr("src","image/ozone_off.png");
+                break;
+            case "1":
+                $("#ozone_status").text="啟動";
+                $("#ozoneImage").attr("src","image/ozone_on.png");
+                break;
+            case "5":
+                $("#ozone_status").text="運行5min";
+                $("#ozoneImage").attr("src","image/ozone_on.png");
+                break;
+            case "10":
+                $("#ozone_status").text="運行10min";
+                $("#ozoneImage").attr("src","image/ozone_on.png");
+                break;
+            case "15":
+                $("#ozone_status").text="運行15min";
+                $("#ozoneImage").attr("src","image/ozone_on.png");
+                break;
+            case "30":
+                $("#ozone_status").text="運行30min";
+                $("#ozoneImage").attr("src","image/ozone_on.png");
+                break;   
+        }
+    });
+
+    $("#ion").change(function(){
+        $('#ion_status').text=$("#ion").text();
+        switch ($("#ion").val())
+        {	
+            case "1":
+                $("#ionImage").attr("src","image/ion_on.png");
+                break;
+            case "0":
+                $("#ionImage").attr("src","image/ion_off.png");
+                break;
+        }
+    });
+});
+        </script>
+    </body>
+</html>
