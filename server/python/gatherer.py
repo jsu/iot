@@ -16,12 +16,12 @@ def on_message(client, userdata, msg):
     c = db.cursor()
     if msg_type == "sensor":
         c.execute(
-            """update sensor_value set value = %s where client_id = %s and sensor_id = (select id from sensor where name = %s);""",
-            (str(msg.payload.decode('UTF-8')), client_id, msg_name))
+            """insert into sensor_value (client_id, sensor_id, value) (select %s, id, %s from sensor where name = %s);""",
+            (client_id, str(msg.payload.decode('UTF-8')), msg_name))
     elif msg_type == "status":
         c.execute(
-            """update status_value set value = %s where client_id = %s and status_id = (select id from status where name = %s);""",
-            (str(msg.payload.decode('UTF-8')), client_id, msg_name))
+            """insert into status_value (client_id, status_id, value) (select %s, id, %s from status where name = %s);""",
+            (client_id, str(msg.payload.decode('UTF-8')), msg_name))
 
 if __name__ == '__main__':
     client_name = "Gatherer"

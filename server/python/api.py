@@ -82,55 +82,55 @@ api.add_resource(CommandPwmDuty, '/XYCS/<string:sn>/command/pwm_duty')
 class StatusMachine(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "machine"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "machine"))
         return {"data": c.fetchone()[0]}
 
 class StatusOpMode(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "opmode"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "opmode"))
         return {"data": c.fetchone()[0]}
 
 class StatusFan(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "fan"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "fan"))
         return {"data": c.fetchone()[0]}
 
 class StatusEP(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "EP"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "EP"))
         return {"data": c.fetchone()[0]}
 
 class StatusUV(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "UV"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "UV"))
         return {"data": c.fetchone()[0]}
 
 class StatusOzone(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "ozone"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "ozone"))
         return {"data": c.fetchone()[0]}
 
 class StatusIon(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "ion"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "ion"))
         return {"data": c.fetchone()[0]}
 
 class StatusBuzzer(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "buzzer"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "buzzer"))
         return {"data": c.fetchone()[0]}
 
 class StatusPwmDuty(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s);""", (sn, "pwm_duty"))
+        c.execute("""select value from status_value where client_id = %s and status_id = (select id from status where name = %s) order by created_at desc limit 1;""", (sn, "pwm_duty"))
         return {"data": c.fetchone()[0]}
 
 api.add_resource(StatusMachine, '/XYCS/<string:sn>/status/machine')
@@ -146,49 +146,49 @@ api.add_resource(StatusPwmDuty, '/XYCS/<string:sn>/status/pwm_duty')
 class SensorTemperature(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "temperature"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "temperature"))
         return {"data": c.fetchone()[0]}
 
 class SensorHumidity(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "humidity"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "humidity"))
         return {"data": c.fetchone()[0]}
 
 class SensorFanCurrent(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "fan_current"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "fan_current"))
         return {"data": c.fetchone()[0]}
 
 class SensorPrdCurrent(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "prd_current"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "prd_current"))
         return {"data": c.fetchone()[0]}
 
 class SensorUV(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "UV"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "UV"))
         return {"data": c.fetchone()[0]}
 
 class SensorOzone(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "ozone"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "ozone"))
         return {"data": c.fetchone()[0]}
 
 class SensorPM25(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "PM25"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "PM25"))
         return {"data": c.fetchone()[0]}
 
 class SensorMotion(Resource):
     def get(self, sn):
         c = db.cursor()
-        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s);""", (sn, "motion"))
+        c.execute("""select value from sensor_value where client_id = %s and sensor_id = (select id from sensor where name = %s) order by created_at desc limit 1;""", (sn, "motion"))
         return {"data": c.fetchone()[0]}
 
 api.add_resource(SensorTemperature, '/XYCS/<string:sn>/sensor/temperature')
