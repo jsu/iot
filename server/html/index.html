@@ -332,7 +332,18 @@ function get_sensor_data()
 function get_status_data()
 {
     $.get(STATUS_URI+"machine", function(v){
-        status = v.data ? "運轉中" : "待機";
+        if(v.data)
+        {
+            status = "運轉中";
+            $("#machine option[value='0']").removeAttr("disabled");
+            $("#machine option[value='1']").attr("disabled", true);
+        }
+        else
+        {
+            status = "待機";
+            $("#machine option[value='0']").attr("disabled", true);
+            $("#machine option[value='1']").removeAttr("disabled");
+        }
         $("#machine_status").text(status);
     });
     $.get(STATUS_URI+"opmode", function(v){
@@ -340,6 +351,10 @@ function get_status_data()
         {
             case 0:
                 status = "手動模式";
+                $("#opmode option[value='0']").attr("disabled", true);
+                $("#opmode option[value='1']").removeAttr("disabled");
+                $("#opmode option[value='2']").removeAttr("disabled");
+                $("#opmode option[value='3']").removeAttr("disabled");
                 break;
             case 1:
                 status = "健康舒適";
@@ -382,17 +397,6 @@ $(document).ready(function(){
         str=$("#machine").val();
         $('#machine_status').text=$("#machine").text();
         $.post(COMMAND_URI+"machine", {"data": $("#machine").val()});
-        switch($("#machine").val())
-        {
-            case "1":
-                $("#machine option[value='1']").attr("disabled","disabled");
-                $("#machine option[value='0']").removeAttr('disabled');
-                break;
-            case "0":
-                $("#machine option[value='0']").attr("disabled","disabled");
-                $("#machine option[value='1']").removeAttr('disabled');
-                break; 
-        }
     });
 
     $("#opmode").change(function(){
