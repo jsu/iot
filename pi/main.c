@@ -75,6 +75,7 @@ struct _sensor{
 }ssensor;
 
 uint8_t uv_first_run, o3_first_run; 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int strtoint(char *str)
 {
@@ -232,7 +233,9 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
             sprintf(*(b + 1), "> Comfort");
             sprintf(*(b + 2), "  Purify");
             sprintf(*(b + 3), "  Remote/Local"); 
+            pthread_mutex_lock(&mutex);
             lcd_display(b);
+            pthread_mutex_unlock(&mutex);
         }
         else
         {
@@ -252,7 +255,9 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
                 else
                     sprintf(*(b + i), " ");
             }
+            pthread_mutex_lock(&mutex);
             lcd_display(b);
+            pthread_mutex_unlock(&mutex);
         }
     }
     else
@@ -278,7 +283,9 @@ void machine_switch(struct mosquitto *mosq, int flag, uint8_t long_press)
             sprintf(*(b + 1), "*  Forest          *");
             sprintf(*(b + 2), "*         Breath   *");
             sprintf(*(b + 3), "********************");
+            pthread_mutex_lock(&mutex);
             lcd_display(b);
+            pthread_mutex_unlock(&mutex);
         }
     }
 }
@@ -397,6 +404,7 @@ void message_callback(struct mosquitto *mosq, void *userdata,
                     UV_switch(mosq, ON);
                     printf("Remote UV Mode\n");
                     sstatus.op_mode = MODE_UV;
+                    uv_first_run = 1;
                 }
                 else if((i = strtoint(message->payload)) == 3)
                 {
@@ -406,6 +414,7 @@ void message_callback(struct mosquitto *mosq, void *userdata,
                     ozone_switch(mosq, ON);
                     printf("O3 Mode\n");
                     sstatus.op_mode = MODE_O3;
+                    o3_first_run = 1;
                 }
             }
         }
@@ -478,9 +487,7 @@ void *local_control_thread(void *mosq)
 {
     uint8_t button_status[] = {0, 0, 0, 0, 0};
     uint8_t v = 0x09; /* voltage could be 0x0f when 5v or 0x09 3.3v */
-    uint8_t mode;
     uint32_t counter = 0, uv_timer, o3_timer;
-    uint32_t o3m_timer;
     uint8_t long_press = 0, i, pos, pressed = 0;
     int32_t time_left;
     time_t uv_time, o3_time, o3m_time;
@@ -597,7 +604,9 @@ void *local_control_thread(void *mosq)
                 else
                     sprintf(*(buffer + i), " ");
             }
-            lcd_display(buffer); 
+            pthread_mutex_lock(&mutex);
+            lcd_display(buffer);
+            pthread_mutex_unlock(&mutex);
         }
 
         bcm2835_spi_transfernb(out_ch3, ch_data, 3);
@@ -643,7 +652,9 @@ void *local_control_thread(void *mosq)
                 else
                     sprintf(*(buffer + i), " ");
             }
-            lcd_display(buffer); 
+            pthread_mutex_lock(&mutex);
+            lcd_display(buffer);
+            pthread_mutex_unlock(&mutex);
         }
 
         bcm2835_spi_transfernb(out_ch4, ch_data, 3);
@@ -673,7 +684,9 @@ void *local_control_thread(void *mosq)
                     else
                         sprintf(*(buffer + i), " ");
                 }
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
+                pthread_mutex_unlock(&mutex);
             }
             else
             {
@@ -906,7 +919,6 @@ void *local_control_thread(void *mosq)
                         printf("Comfort Mode: Start.\n");
                         sstatus.op_mode = MODE_COMFORT;
                         op_mode_switch(mosq, 1);
-                        mode = MODE_COMFORT;
                         fan_switch(mosq, ON);
                         pwm_duty_switch(mosq, PWM_DUTY_250);
                         UV_switch(mosq, OFF);
@@ -942,12 +954,7 @@ void *local_control_thread(void *mosq)
                             printf("O3 Mode: Start.\n");
                             op_mode_switch(mosq, 3);
                             sstatus.op_mode = MODE_O3;
-                            o3m_time = time(NULL);
-                            o3m_timer = 60;
-                            pwm_duty_switch(mosq, PWM_DUTY_850);
-                            ozone_switch(mosq, ON);
-                            EP_switch(mosq, OFF);
-                            ion_switch(mosq, OFF);
+                            o3_first_run = 1;
                         }
                         else
                         {
@@ -955,7 +962,9 @@ void *local_control_thread(void *mosq)
                             sprintf(*(buffer + 1), "Temp: %3.2f C", ssensor.temperature);
                             sprintf(*(buffer + 2), "Temperature > 60 C");
                             sprintf(*(buffer + 3), "O3 Mode Stopped!");
+                            pthread_mutex_lock(&mutex);
                             lcd_display(buffer);
+                            pthread_mutex_unlock(&mutex);
                         }
                         buzzer_switch(ON);
                         nanosleep(&bzr_sleeper, NULL);
@@ -964,6 +973,7 @@ void *local_control_thread(void *mosq)
                         break;
                     case 41:
                         /* Local, Remote */
+                        lcd_sleep();
                         sstatus.remote = OFF;
                         buzzer_switch(ON);
                         nanosleep(&bzr_sleeper, NULL);
@@ -1023,42 +1033,32 @@ void *local_control_thread(void *mosq)
                 if(sstatus.op_mode == MODE_COMFORT)
                 {
                     printf("Comfort_Mode: Shutdown caused by exit.\n");
-                    sstatus.op_mode = MODE_MANUAL;
                     EP_switch(mosq, OFF);
                     ion_switch(mosq, OFF);
-                    pwm_duty_switch(mosq, PWM_DUTY_250);
                     sprintf(*(buffer + 0), "  Manual");
                     sprintf(*(buffer + 1), "> Comfort");
                     sprintf(*(buffer + 2), "  Purify");
                     sprintf(*(buffer + 3), "  Remote/Local"); 
+                    pthread_mutex_lock(&mutex);
                     lcd_display(buffer);
-                    buzzer_switch(ON);
-                    nanosleep(&bzr_sleeper, NULL);
-                    buzzer_switch(OFF);
+                    pthread_mutex_unlock(&mutex);
                 }
                 if(sstatus.op_mode == MODE_UV)
                 {
                     printf("UV_Mode: Shutdown caused by exit.\n");
-                    sstatus.op_mode = MODE_MANUAL;
                     UV_switch(mosq, OFF);
-                    pwm_duty_switch(mosq, PWM_DUTY_250);
-                    buzzer_switch(ON);
-                    nanosleep(&bzr_sleeper, NULL);
-                    buzzer_switch(OFF);
                 }
 
                 if(sstatus.op_mode == MODE_O3)
                 {
                     printf("O3_Mode: Shutdown caused by exit.\n");
                     ozone_switch(mosq, OFF);
-                    pwm_duty_switch(mosq, PWM_DUTY_250);
-                    o3m_time = 0;
-                    o3m_timer = 0;
-                    buzzer_switch(ON);
-                    nanosleep(&bzr_sleeper, NULL);
-                    buzzer_switch(OFF);
                 }
-                mode = 0;
+                pwm_duty_switch(mosq, PWM_DUTY_250);
+                buzzer_switch(ON);
+                nanosleep(&bzr_sleeper, NULL);
+                buzzer_switch(OFF);
+                sstatus.op_mode = MODE_MANUAL;
                 op_mode_switch(mosq, 0);
             }
             prev_node = current_menu_node();
@@ -1084,7 +1084,9 @@ void *local_control_thread(void *mosq)
                     else
                         sprintf(*(buffer + i), " ");
                 }
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
+                pthread_mutex_unlock(&mutex);
             }
         }
     }
@@ -1365,13 +1367,13 @@ void *op_mode_comfort_thread(void *mosq)
         nanosleep(&sleeper, NULL);
         if(sstatus.op_mode == MODE_COMFORT)
         {
-            /*
             sprintf(*(buffer + 0), "==[Comfort]=========");
             sprintf(*(buffer + 1), "PM25: %3.0f ug/m3", ssensor.PM25);
             sprintf(*(buffer + 2), "Temp: %3.1f C", ssensor.temperature);
             sprintf(*(buffer + 3), "Humi: %3.1f %%", ssensor.humidity);
+            pthread_mutex_lock(&mutex);
             lcd_display(buffer);
-            */
+            pthread_mutex_unlock(&mutex);
 
             if(comfort_timer)
             {
@@ -1430,7 +1432,6 @@ void *op_mode_uv_thread(void *mosq)
 
     bzr_sleeper.tv_sec = 0;
     bzr_sleeper.tv_nsec = 150000000L;
-    /* first run is gonna be buggy */
     for(;;)
     {
         nanosleep(&sleeper, NULL);
@@ -1464,63 +1465,63 @@ void *op_mode_uv_thread(void *mosq)
 
             if(ssensor.temperature > 60)
             {
-                /*
                 sprintf(*(buffer + 0), "==[Purify:UV]=======");
                 sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                 sprintf(*(buffer + 2), "Temperature > 60 C");
                 sprintf(*(buffer + 3), "UV Mode Stopped!");
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
                 printf("UV_Mode: Temperature over 60 degree celsius.\n");
                 UV_switch(mosq, OFF);
                 sstatus.op_mode = MODE_MANUAL;
                 pwm_duty_switch(mosq, 250);
                 uv_counter = 0;
                 op_mode_switch(mosq, 0);
+                sstatus.op_mode = MODE_MANUAL;
                 buzzer_switch(ON);
                 nanosleep(&bzr_sleeper, NULL);
                 buzzer_switch(OFF);
-                uv_first_run = 1;
             }
 
             if(uvm_timer == 60)
             {
                 time_left = 600 - (time(NULL) - uvm_time);
-                /*
                 sprintf(*(buffer + 0), "==[Purify:UV]=======");
                 sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                 sprintf(*(buffer + 2), "Humi: %3.1f %%", ssensor.humidity);
                 sprintf(*(buffer + 3), "Time left: %d sec.", time_left);
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
                 if(time(NULL) - uvm_time > uvm_timer)
                 {
                     printf("UV_Mode: First minute ends.\n");
                     uvm_time = time(NULL);
-                    uvm_timer = 9 * 60;
-                    uv_first_run = 1;
+                    uvm_timer = 540;
                 }
             }
 
-            if(uvm_timer == 9 * 60)
+            if(uvm_timer == 540)
             {
-                time_left = 539 - (time(NULL) - uvm_time);
-                /*
+                time_left = 540 - 1 - (time(NULL) - uvm_time);
                 sprintf(*(buffer + 0), "==[Purify:UV]=======");
                 sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                 sprintf(*(buffer + 2), "Humi: %3.1f %%", ssensor.humidity);
                 sprintf(*(buffer + 3), "Time left: %d sec.", time_left);
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
                 if(time(NULL) - uvm_time > uvm_timer)
                 {
-                    /*
                     sprintf(*(buffer + 0), "==[Purify:UV]=======");
                     sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                     sprintf(*(buffer + 2), "Humi: %3.1f %%", ssensor.humidity);
                     sprintf(*(buffer + 3), "Time's Up.");
+                    pthread_mutex_lock(&mutex);
                     lcd_display(buffer);
-                    */
+                    pthread_mutex_unlock(&mutex);
+
                     printf("UV_Mode: 10 minutes timed up.\n");
                     UV_switch(mosq, OFF);
                     pwm_duty_switch(mosq, 250);
@@ -1534,13 +1535,13 @@ void *op_mode_uv_thread(void *mosq)
 
                 if(ssensor.motion)
                 {
-                    /*
                     sprintf(*(buffer + 0), "==[Purify:UV]=======");
                     sprintf(*(buffer + 1), "Object movement");
                     sprintf(*(buffer + 2), "           detected.");
                     sprintf(*(buffer + 3), "UV Mode Stopped!");
+                    pthread_mutex_lock(&mutex);
                     lcd_display(buffer);
-                    */
+                    pthread_mutex_unlock(&mutex);
                     printf("UV_Mode: You have moved\n");
                     UV_switch(mosq, OFF);
                     sstatus.op_mode = MODE_MANUAL;
@@ -1559,11 +1560,8 @@ void *op_mode_uv_thread(void *mosq)
 void *op_mode_o3_thread(void *mosq)
 {
     uint32_t o3m_timer, time_left;
-    int8_t uv_direction;
-    uint32_t uv_counter;
     time_t o3m_time;
     char **buffer;
-    uint16_t pwm_duty = 0;
     struct timespec sleeper, bzr_sleeper;
 
     buffer = (char **)malloc(sizeof(buffer) * 4);
@@ -1582,30 +1580,43 @@ void *op_mode_o3_thread(void *mosq)
         nanosleep(&sleeper, NULL);
         if(sstatus.op_mode == MODE_O3)
         {
+            if(o3_first_run)
+            {
+                o3m_time = time(NULL);
+                o3m_timer = 60;
+                o3_first_run = 0;
+                pwm_duty_switch(mosq, PWM_DUTY_850);
+                ozone_switch(mosq, ON);
+                EP_switch(mosq, OFF);
+                ion_switch(mosq, OFF);
+            }
+
+            /*
             if(ssensor.ozone > 800)
             {
-                /*
                 sprintf(*(buffer + 0), "==[Purify:O3]=======");
                 sprintf(*(buffer + 1), "O3: %3.2f C", ssensor.ozone);
                 sprintf(*(buffer + 2), "O3 over 800 ppb.");
                 sprintf(*(buffer + 3), "O3 Mode Stopped!");
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
                 printf("O3_Mode: O3 over 800, STOP.\n");
                 pwm_duty_switch(mosq, 250); 
                 ozone_switch(mosq, OFF);
                 sstatus.op_mode = MODE_MANUAL;
             }
+            */
 
             if(ssensor.temperature > 60)
             {
-                /*
                 sprintf(*(buffer + 0), "==[Purify:O3]=======");
                 sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                 sprintf(*(buffer + 2), "Temperature > 60 C");
                 sprintf(*(buffer + 3), "O3 Mode Stopped!");
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
 
                 printf("O3_Mode: Temperature over 60. !!!!\n");
                 ozone_switch(mosq, OFF);
@@ -1620,42 +1631,42 @@ void *op_mode_o3_thread(void *mosq)
             if(o3m_timer == 60)
             {
                 time_left = 600 - (time(NULL) - o3m_time);
-                /*
                 sprintf(*(buffer + 0), "==[Purify:O3]=======");
                 sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                 sprintf(*(buffer + 2), "Humi: %3.1f %%", ssensor.humidity);
                 sprintf(*(buffer + 3), "Time left: %d sec.", time_left);
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
 
                 if(time(NULL) - o3m_time > o3m_timer)
                 {
                     printf("O3_Mode: First minute up.\n");
                     o3m_time = time(NULL);
-                    o3m_timer = 9 * 60;
+                    o3m_timer = 540;
                 }
             }
 
-            if(o3m_timer == 9 * 60)
+            if(o3m_timer == 540)
             {
-                time_left = 539 - (time(NULL) - o3m_time);
-                /*
+                time_left = 540 - 1 - (time(NULL) - o3m_time);
                 sprintf(*(buffer + 0), "==[Purify:O3]=======");
                 sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                 sprintf(*(buffer + 2), "Humi: %3.1f %%", ssensor.humidity);
                 sprintf(*(buffer + 3), "Time left: %d sec.", time_left);
+                pthread_mutex_lock(&mutex);
                 lcd_display(buffer);
-                */
+                pthread_mutex_unlock(&mutex);
 
                 if(time(NULL) - o3m_time > o3m_timer)
                 {
-                    /*
                     sprintf(*(buffer + 0), "==[Purify:O3]=======");
                     sprintf(*(buffer + 1), "Temp: %3.1f C", ssensor.temperature);
                     sprintf(*(buffer + 2), "Humi: %3.1f %%", ssensor.humidity);
                     sprintf(*(buffer + 3), "Time's Up.");
+                    pthread_mutex_lock(&mutex);
                     lcd_display(buffer);
-                    */
+                    pthread_mutex_unlock(&mutex);
                     printf("O3_Mode: Time is up.\n");
                     ozone_switch(mosq, OFF);
                     pwm_duty_switch(mosq, PWM_DUTY_250);
@@ -1668,13 +1679,13 @@ void *op_mode_o3_thread(void *mosq)
 
                 if(ssensor.motion)
                 {
-                    /*
                     sprintf(*(buffer + 0), "==[Purify:O3]=======");
                     sprintf(*(buffer + 1), "Object movement");
                     sprintf(*(buffer + 2), "           detected.");
                     sprintf(*(buffer + 3), "O3 Mode Stopped!");
+                    pthread_mutex_lock(&mutex);
                     lcd_display(buffer);
-                    */
+                    pthread_mutex_unlock(&mutex);
                     printf("O3_Mode: You have moved !!!!\n");
                     ozone_switch(mosq, OFF);
                     pwm_duty_switch(mosq, PWM_DUTY_250);
@@ -1691,8 +1702,7 @@ void *op_mode_o3_thread(void *mosq)
 
 int main(int argc, char *argv[])
 {
-    /*char *host = "iot.eclipse.org";*/
-    char *host = "server.iot.pwnass.com";
+    char *host = "iot.eclipse.org";
     int port = 1883;
     int keepalive = 60;
     struct mosquitto *mosq = NULL;

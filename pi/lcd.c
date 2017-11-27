@@ -131,6 +131,15 @@ void lcd_clr()
     lcd_str("                    ");
 }
 
+void lcd_sleep()
+{
+    struct timespec sleeper;
+    sleeper.tv_sec = 0;
+    sleeper.tv_nsec = 38000L;
+    nanosleep(&sleeper, NULL);
+    lcd_cmd(0x08);
+}
+
 void init_lcd()
 {
     struct timespec sleeper;
@@ -150,3 +159,29 @@ void init_lcd()
     nanosleep(&sleeper, NULL);
 }
 
+/*
+int main(int argc, char **argv)
+{
+    char **b;
+    char buf[1];
+
+    b = (char **)malloc(sizeof(b) * 4);
+    *(b + 0) = (char *)malloc(sizeof(*b) * 21);
+    *(b + 1) = (char *)malloc(sizeof(*b) * 21);
+    *(b + 2) = (char *)malloc(sizeof(*b) * 21);
+    *(b + 3) = (char *)malloc(sizeof(*b) * 21);
+
+    bcm2835_init();
+
+    sprintf(*(b + 0), "  Manual");
+    sprintf(*(b + 1), "> Comfort");
+    sprintf(*(b + 2), "  Purify");
+    sprintf(*(b + 3), "  Remote/Local"); 
+    init_lcd();
+    lcd_display(b);
+
+    buf[0] = 0x08;
+    bcm2835_i2c_write(buf, 1);
+    return 0;
+}
+*/

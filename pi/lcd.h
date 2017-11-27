@@ -1,5 +1,6 @@
 #ifndef __LCD_H__
 #define __LCD_H__
+#include <stdint.h>
 
 #define LCD_ADDRESS 0x27
 
