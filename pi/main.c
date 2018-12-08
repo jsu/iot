@@ -489,8 +489,7 @@ void *local_control_thread(void *mosq)
     uint8_t v = 0x09; /* voltage could be 0x0f when 5v or 0x09 3.3v */
     uint32_t counter = 0, uv_timer, o3_timer;
     uint8_t long_press = 0, i, pos, pressed = 0;
-    int32_t time_left;
-    time_t uv_time, o3_time, o3m_time;
+    time_t uv_time, o3_time;
     struct timespec sleeper, btn_sleeper, bzr_sleeper;
     struct Node *ptr, *current_node, *high_node, *low_node, *prev_node;
     char **buffer, c;

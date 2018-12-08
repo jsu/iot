@@ -9,6 +9,7 @@ void lcd_put(char data);
 void lcd_str(char *str);
 void lcd_clr();
 void lcd_display(char **lines);
+void lcd_sleep();
 void mv_to(int x, int y);
 void mv_to_line(int line);
 void init_lcd();
